@@ -53,8 +53,8 @@ export const CasesPage = () => {
         ) : (
           <div className="grid grid-cols-2 gap-4">
             {cases?.map((caseItem) => (
-              <CaseCard 
-                key={caseItem.id} 
+              <CaseCard
+                key={caseItem.id}
                 case={caseItem}
               />
             ))}

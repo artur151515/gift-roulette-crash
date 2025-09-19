@@ -1,17 +1,4 @@
-// Core types for the Telegram Mini App
-export interface User {
-  id: number;
-  firstName: string;
-  lastName?: string;
-  username?: string;
-  avatarUrl?: string;
-  balance: number;
-}
-
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
+import {User} from "@/types/auth.ts";
 
 export interface Case {
   id: string;

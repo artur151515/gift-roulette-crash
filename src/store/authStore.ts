@@ -1,85 +1,78 @@
+// src/store/authStore.ts
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
-import type { User, AuthTokens } from '@/types';
-import { tokenManager } from '@/api/client';
+import { api } from '@/lib/api';
 
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  isDemoMode: boolean;
-  
-  // Actions
-  setUser: (user: User) => void;
-  setTokens: (tokens: AuthTokens) => void;
-  logout: () => void;
-  setLoading: (loading: boolean) => void;
-  setDemoMode: (demo: boolean) => void;
-  updateBalance: (newBalance: number) => void;
-}
-
-// Demo user for testing without Telegram
-const DEMO_USER: User = {
-  id: 12345,
-  firstName: 'Demo',
-  lastName: 'User',
-  username: 'demo_user',
-  balance: 1000,
+type User = {
+    id: string;
+    firstName: string;
+    lastName?: string;
+    username?: string;
+    balance: number;
 };
 
-export const useAuthStore = create<AuthState>()(
-  devtools(
-    (set, get) => ({
-      user: null,
-      isAuthenticated: false,
-      isLoading: true,
-      isDemoMode: false,
+type AuthState = {
+    user: User | null;
+    accessToken: string | null;
+    refreshToken: string | null;
+    isAuthReady: boolean;
+    loginWithTelegram: (initData: string) => Promise<void>;
+    refreshTokens: () => Promise<void>;
+    loadMe: () => Promise<void>;
+    logout: () => void;
+};
 
-      setUser: (user: User) => {
-        set({ 
-          user, 
-          isAuthenticated: true, 
-          isLoading: false 
+export const useAuthStore = create<AuthState>((set, get) => ({
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthReady: false,
+
+    async loginWithTelegram(initData) {
+        // Бекенд: POST /auth/telegram (initData из WebApp)
+        // Схема ответа в OpenAPI пустая, но обычно это { accessToken, refreshToken, user }
+        // Проверь точные имена полей на своей стороне.
+        const { data } = await api.post('/auth/telegram', { initData }); // :contentReference[oaicite:3]{index=3}
+        set({
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            user: data.user ?? null,
+            isAuthReady: true,
         });
-      },
+        // (Необязательно) запланируй авто-рефреш за ~30–60с до exp
+        scheduleProactiveRefresh();
+    },
 
-      setTokens: (tokens: AuthTokens) => {
-        tokenManager.setTokens(tokens);
-      },
+    async refreshTokens() {
+        const rt = get().refreshToken;
+        if (!rt) throw new Error('No refresh token');
+        const { data } = await api.post('/auth/refresh', { refreshToken: rt }); // :contentReference[oaicite:4]{index=4}
+        set({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+        scheduleProactiveRefresh();
+    },
 
-      logout: () => {
-        tokenManager.clearTokens();
-        set({ 
-          user: null, 
-          isAuthenticated: false, 
-          isLoading: false 
-        });
-      },
+    async loadMe() {
+        const { data } = await api.get('/auth/me'); // :contentReference[oaicite:5]{index=5}
+        set({ user: data });
+    },
 
-      setLoading: (loading: boolean) => {
-        set({ isLoading: loading });
-      },
+    logout() {
+        set({ user: null, accessToken: null, refreshToken: null, isAuthReady: true });
+    },
+}));
 
-      setDemoMode: (demo: boolean) => {
-        set({ 
-          isDemoMode: demo,
-          user: demo ? DEMO_USER : null,
-          isAuthenticated: demo,
-          isLoading: false
-        });
-      },
-
-      updateBalance: (newBalance: number) => {
-        const { user } = get();
-        if (user) {
-          set({ 
-            user: { ...user, balance: newBalance } 
-          });
-        }
-      },
-    }),
-    {
-      name: 'auth-store',
+// ===== Вспомогательное: проактивный рефреш по exp =====
+let refreshTimer: number | undefined;
+function scheduleProactiveRefresh() {
+    const { accessToken, refreshTokens } = useAuthStore.getState();
+    if (!accessToken) return;
+    try {
+        const [, payload] = accessToken.split('.');
+        const { exp } = JSON.parse(atob(payload));
+        const msLeft = exp * 1000 - Date.now();
+        const when = Math.max(5_000, msLeft - 60_000); // за минуту до истечения
+        if (refreshTimer) window.clearTimeout(refreshTimer);
+        refreshTimer = window.setTimeout(() => refreshTokens().catch(() => {}), when);
+    } catch {
+        // если токен без exp — ничего не планируем
     }
-  )
-);
+}
