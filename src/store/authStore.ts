@@ -29,3 +29,4 @@ export const useAuthStore = create<AuthStore>((set) => ({
     setUser: (userData) => set({ user: userData, isAuthReady: true }), // Обновление данных пользователя
     clearUser: () => set({ user: null, isAuthReady: false }),
 }));
+

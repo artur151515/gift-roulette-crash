@@ -9,8 +9,11 @@ export type TelegramUser = {
 };
 
 export type TelegramLoginResponse = {
-    accessToken: string;
-    refreshToken: string;
+    success: boolean;
+    data: {
+        accessToken: string;
+        refreshToken: string;
+    }
 };
 
 export type DepositStatus = {

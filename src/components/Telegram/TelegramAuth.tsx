@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { loginWithTelegram } from "@/api";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "@/store/authStore.ts";
 
 const TelegramAuth: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
@@ -16,10 +16,7 @@ const TelegramAuth: React.FC = () => {
 
         const authenticate = async () => {
             try {
-                // Отправляем initData на сервер для авторизации
                 const result = await loginWithTelegram(initData);
-
-                // Декодируем initData для отображения
                 const decoded = decodeURIComponent(initData.split("&")[0].split("=")[1]);
                 const userData = JSON.parse(decoded);
 
@@ -33,13 +30,13 @@ const TelegramAuth: React.FC = () => {
                     photoUrl: userData.photo_url,
                 };
 
+                // Сохраняем токены в localStorage
+                localStorage.setItem("accessToken", result.data.accessToken);
+                localStorage.setItem("refreshToken", result.data.refreshToken);
+
                 // Сохраняем данные пользователя в хранилище
                 setUser(user);
                 setAuthReady(true);
-
-                // Сохраняем токены в localStorage
-                localStorage.setItem("accessToken", result.accessToken);
-                localStorage.setItem("refreshToken", result.refreshToken);
             } catch (err: any) {
                 setError(err.message);
                 setAuthReady(false);
