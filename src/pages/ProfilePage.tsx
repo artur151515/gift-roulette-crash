@@ -19,7 +19,7 @@ type TgUser = {
 };
 
 export const ProfilePage = () => {
-  const { user } = useAuthStore();
+  const { user, isAuthReady } = useAuthStore();
   const { openDepositModal } = useUIStore();
   const { data: inventory, isLoading: isLoadingInventory } = useInventory();
 
@@ -28,16 +28,11 @@ export const ProfilePage = () => {
   const tgUser: TgUser | undefined = tg?.initDataUnsafe?.user;
 
   // --- Поля для отображения (бэкенд > телеграм > дефолт)
-  const displayFirstName =
-      user?.firstName ?? tgUser?.first_name ?? 'Гость';
-  const displayLastName =
-      user?.lastName ?? tgUser?.last_name ?? '';
-  const displayUsername =
-      user?.username ?? tgUser?.username;
-  const displayLanguage =
-      tgUser?.language_code;
-  const displayId =
-      (user as any)?.id ?? tgUser?.id; // если id юзера на бэке совпадает с tg id — ок; иначе подставляем tg id
+  const displayFirstName = user?.firstName ?? tgUser?.first_name ?? 'Гость';
+  const displayLastName = user?.lastName ?? tgUser?.last_name ?? '';
+  const displayUsername = user?.username ?? tgUser?.username;
+  const displayLanguage = tgUser?.language_code;
+  const displayId = (user as any)?.id ?? tgUser?.id; // если id юзера на бэке совпадает с tg id — ок; иначе подставляем tg id
   const balance = user?.balance ?? 0;
 
   // --- Аватар: фото из Telegram, иначе буква
@@ -69,7 +64,7 @@ export const ProfilePage = () => {
   };
 
   // если нет ни tgUser (вне Telegram) ни user (ещё не загрузился) — показываем skeleton
-  if (!tgUser && !user) {
+  if (!isAuthReady || (!tgUser && !user)) {
     return (
         <div className="flex-1 pb-20 p-4">
           <div className="space-y-6">

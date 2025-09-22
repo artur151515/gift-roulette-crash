@@ -1,77 +1,58 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
+import { loginWithTelegram } from "@/api";
+import { useAuthStore } from "@/store/authStore";
 
 const TelegramAuth: React.FC = () => {
-    const [user, setUser] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
-    const [jwtToken, setJwtToken] = useState<string | null>(null);
+    const setAuthReady = useAuthStore((state) => state.setAuthReady);
+    const setUser = useAuthStore((state) => state.setUser);
 
     useEffect(() => {
-        // Проверка, доступна ли информация о пользователе через WebApp Telegram
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-
-            // Получаем initData с Telegram
-            const initData = window.Telegram.WebApp.initData;
-            if (initData) {
-                authenticateWithTelegram(initData);
-            } else {
-                console.log("initData is empty");
-            }
+        const initData = window.Telegram?.WebApp?.initData;
+        if (!initData) {
+            setError("initData пустой");
+            return;
         }
-    }, []);
 
-    const authenticateWithTelegram = async (initData: string) => {
-        try {
-            // Декодируем initData (параметры URL)
-            const decodedData = decodeURIComponent(initData.split("&")[0].split("=")[1]);
-            const userData = JSON.parse(decodedData);
-            // setError(JSON.stringify(initData))
-            // Отправляем initData на сервер для авторизации
-            const response = await fetch('https://turkeywrind.cloudpub.ru/auth/telegram', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ initData }),
-            });
+        const authenticate = async () => {
+            try {
+                // Отправляем initData на сервер для авторизации
+                const result = await loginWithTelegram(initData);
 
-            if (!response.ok) {
-                throw new Error('Authentication failed');
+                // Декодируем initData для отображения
+                const decoded = decodeURIComponent(initData.split("&")[0].split("=")[1]);
+                const userData = JSON.parse(decoded);
+
+                // Убедитесь, что данные пользователя имеют правильную структуру
+                const user = {
+                    firstName: userData.first_name,
+                    lastName: userData.last_name || '',
+                    username: userData.username,
+                    id: userData.id,
+                    balance: 0, // Если баланс можно получить с сервера, обновите это поле
+                    photoUrl: userData.photo_url,
+                };
+
+                // Сохраняем данные пользователя в хранилище
+                setUser(user);
+                setAuthReady(true);
+
+                // Сохраняем токены в localStorage
+                localStorage.setItem("accessToken", result.accessToken);
+                localStorage.setItem("refreshToken", result.refreshToken);
+            } catch (err: any) {
+                setError(err.message);
+                setAuthReady(false);
             }
+        };
 
-            const data = await response.json();
-
-            // Успешная авторизация, сохраняем токен и информацию о пользователе
-            setUser(userData);
-            setJwtToken(data.accessToken); // Сохраняем JWT токен
-
-            // Сохранение токенов в localStorage для дальнейшего использования
-            localStorage.setItem('accessToken', data.accessToken);
-            localStorage.setItem('refreshToken', data.refreshToken);
-
-        } catch (err) {
-            setError('Ошибка авторизации');
-            console.error(err);
-        }
-    };
+        authenticate();
+    }, [setAuthReady, setUser]);
 
     return (
         <div>
-            {user ? (
-                <div>
-                    <h1>Добро пожаловать, {user.first_name}!</h1>
-                    <p>Ваш баланс: {user.balance || 'Неизвестен'}</p>
-                    <img src={user.photo_url} alt="User profile" />
-                    <p>Ваш Telegram: @{user.username}</p>
-                </div>
-            ) : (
-                <div>
-                    {error && <p>{error}</p>}
-                    <h2>Авторизация через Telegram</h2>
-                    {/* Выводим объект WebApp для теста */}
-                    <pre>{JSON.stringify(window.Telegram.WebApp, null, 2)}</pre>
-                </div>
-            )}
+            <p>Telegram Auth Component</p>
+            {error && <p>{error}</p>}
         </div>
     );
 };
