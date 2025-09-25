@@ -1,4 +1,4 @@
-import {User} from "@/types/auth.ts";
+import { User } from "@/types/new/auth.ts";
 
 export interface Case {
   id: string;

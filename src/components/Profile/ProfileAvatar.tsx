@@ -1,5 +1,3 @@
-import { Badge } from '@/components/ui/badge';
-
 const ProfileAvatar: React.FC<{ firstName: string; photoUrl?: string }> = ({ firstName, photoUrl }) => {
     const avatarLetter = (firstName?.[0] ?? '?').toUpperCase();
 

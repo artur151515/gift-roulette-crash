@@ -1,4 +1,3 @@
-// Core types for the Telegram Mini App
 export interface User {
     id: number | string;
     firstName: string;
@@ -14,6 +13,24 @@ export interface AuthTokens {
     expiresAt?: number; // UNIX seconds (опционально)
 }
 
+export type TelegramUser = {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username: string;
+    language_code: string;
+    allows_write_to_pm: boolean;
+    photo_url: string;
+};
+
+export type TelegramLoginResponse = {
+    success: boolean;
+    data: {
+        accessToken: string;
+        refreshToken: string;
+    }
+};
+
 export type TelegramLoginDto = {
     initData: string; // raw строка initData из Telegram.WebApp
 };
@@ -23,9 +40,8 @@ export type TelegramLoginResponseDto = {
     tokens: AuthTokens;
 };
 
-// /auth/refresh
 export type RefreshTokenDto = { refreshToken: string };
 export type RefreshTokenResponseDto = { tokens: AuthTokens };
 
-// /auth/me
+
 export type UserResponseDto = { user: User };

@@ -24,7 +24,7 @@ export const ProfilePage = () => {
   const balance = user?.balance ?? 0;
   const avatar = tgUser?.photo_url;
 
-  const referralLink = `https://t.me/gif_tstar_bot?start=ref_${displayId ?? '0'}`;
+  const referralLink = `${import.meta.env.VITE_BOT_URL}${displayId ?? '0'}`;
 
   const handleCopyReferralLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -47,6 +47,8 @@ export const ProfilePage = () => {
       description: "Функция будет доступна в ближайшее время",
     });
   };
+
+  // let page = localStorage.getItem("accessToken")
 
   if (!isAuthReady || (!tgUser && !user)) {
     return (
@@ -72,6 +74,7 @@ export const ProfilePage = () => {
               balance={balance}
               avatar={avatar}
           />
+          {/*{page}*/}
           <Inventory inventory={inventory} isLoading={isLoadingInventory} />
           <ReferralSystem referralLink={referralLink} onCopyReferralLink={handleCopyReferralLink} />
         </div>

@@ -1,6 +1,5 @@
 import axios from 'axios';
-import {AuthTokens} from "@/types/auth.ts";
-
+import {AuthTokens} from "@/types/new/auth.ts";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 

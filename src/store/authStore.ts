@@ -18,7 +18,7 @@ interface AuthStore {
         balance?: number;
         photoUrl?: string;
         id?: number;
-    }) => void;  // Убедитесь, что тип соответствует структуре данных
+    }) => void;
     clearUser: () => void;
 }
 

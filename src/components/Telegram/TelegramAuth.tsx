@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { loginWithTelegram } from "@/api";
 import { useAuthStore } from "@/store/authStore.ts";
+import {loginWithTelegram} from "@/api/new/auth.ts";
 
 const TelegramAuth: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
