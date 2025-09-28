@@ -9,7 +9,7 @@ import Inventory from "@/components/Profile/Inventory.tsx";
 import ReferralSystem from "@/components/Profile/ReferralSystem.tsx";
 
 export const ProfilePage = () => {
-  const { user, isAuthReady } = useAuthStore();
+  const { user } = useAuthStore();
   const { openDepositModal } = useUIStore();
   const { data: inventory, isLoading: isLoadingInventory } = useInventory();
 
@@ -48,9 +48,9 @@ export const ProfilePage = () => {
     });
   };
 
-  // let page = localStorage.getItem("accessToken")
+  // const initData = window.Telegram?.WebApp?.initData;
 
-  if (!isAuthReady || (!tgUser && !user)) {
+  if (!tgUser && !user) {
     return (
         <div className="flex-1 pb-20 p-4">
           <div className="space-y-6">
@@ -74,7 +74,7 @@ export const ProfilePage = () => {
               balance={balance}
               avatar={avatar}
           />
-          {/*{page}*/}
+          {/*{initData}*/}
           <Inventory inventory={inventory} isLoading={isLoadingInventory} />
           <ReferralSystem referralLink={referralLink} onCopyReferralLink={handleCopyReferralLink} />
         </div>

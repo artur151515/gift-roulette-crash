@@ -27,7 +27,7 @@ export type TelegramLoginResponse = {
     success: boolean;
     data: {
         accessToken: string;
-        refreshToken: string;
+        // refreshToken: string;
     }
 };
 

@@ -1,52 +1,81 @@
-import axios from "axios";
-import { refreshToken as refreshTokenRequest } from "@/api/new/auth.ts"; // твой метод refresh
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { useAuthStore } from "@/store/authStore.ts";
 
-export const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
-// ❗️ ( заменить на Zustand)
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
-
-export const setTokens = (access: string, refresh: string) => {
-    accessToken = access;
-    refreshToken = refresh;
-};
-
-const apiClient = axios.create({
+export const apiClient = axios.create({
     baseURL: BASE_URL,
-    headers: { "Content-Type": "application/json" },
+    withCredentials: true,
 });
 
 // Добавляем accessToken к каждому запросу
-apiClient.interceptors.request.use((config) => {
-    if (accessToken) {
-        config.headers.Authorization = `Bearer ${accessToken}`;
+apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+    const token = useAuthStore.getState().accessToken;
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
 
-// Перехватчик ответов: если 401 → пробуем обновить токен
+// Очередь для запросов во время refresh
+let isRefreshing = false;
+type QueueItem = {
+    resolve: (value?: unknown) => void;
+    reject: (reason?: unknown) => void;
+};
+let failedQueue: QueueItem[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(({ resolve, reject }) => {
+        if (error) reject(error);
+        else resolve(token);
+    });
+    failedQueue = [];
+};
+
 apiClient.interceptors.response.use(
     (response) => response,
-    async (error) => {
+    async (error: AxiosError & { config?: InternalAxiosRequestConfig }) => {
         const originalRequest = error.config;
 
-        if (
-            error.response?.status === 401 &&
-            !originalRequest._retry &&
-            refreshToken
-        ) {
-            originalRequest._retry = true;
-            try {
-                const newTokens = await refreshTokenRequest(refreshToken);
-                setTokens(newTokens.data.accessToken, newTokens.data.refreshToken);
+        if (!originalRequest) {
+            return Promise.reject(error);
+        }
 
-                // Повторяем запрос с новым токеном
-                originalRequest.headers.Authorization = `Bearer ${newTokens.data.accessToken}`;
+        // Обрабатываем только 401
+        if (error.response?.status === 401) {
+            if (isRefreshing) {
+                // ждём пока закончится текущий refresh
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                }).then((token) => {
+                    if (token && originalRequest.headers) {
+                        originalRequest.headers.Authorization = `Bearer ${token as string}`;
+                    }
+                    return apiClient(originalRequest);
+                });
+            }
+
+            isRefreshing = true;
+
+            try {
+                await useAuthStore.getState().refresh();
+                const newToken = useAuthStore.getState().accessToken;
+
+                processQueue(null, newToken);
+
+                if (newToken && originalRequest.headers) {
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                }
+
                 return apiClient(originalRequest);
-            } catch (refreshError) {
-                console.error("Refresh token failed", refreshError);
-                // здесь можно сделать logout
+            } catch (refreshErr) {
+                processQueue(refreshErr, null);
+                useAuthStore.getState().clearAuth();
+                window.dispatchEvent(new CustomEvent("auth:force-logout"));
+                return Promise.reject(refreshErr);
+            } finally {
+                isRefreshing = false;
             }
         }
 

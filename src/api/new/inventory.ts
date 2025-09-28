@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import {apiClient} from "./apiClient";
 
 export const getUserInventory = async (
     page?: number,

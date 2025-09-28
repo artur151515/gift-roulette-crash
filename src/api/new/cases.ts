@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import {apiClient} from "./apiClient";
 import { CaseDetails } from "@/types";
 import { CaseSummary } from "@/types/new/cases.ts";
 

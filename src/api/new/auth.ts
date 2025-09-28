@@ -1,5 +1,6 @@
-import apiClient, { setTokens } from "./apiClient";
+import { apiClient } from "./apiClient";
 import { TelegramLoginResponse, TelegramUser } from "@/types/new/auth.ts";
+import {useAuthStore} from "@/store/authStore.ts";
 
 export const loginWithTelegram = async (
     initData: string
@@ -8,17 +9,13 @@ export const loginWithTelegram = async (
         "/auth/telegram",
         { initData }
     );
-    setTokens(data.data.accessToken, data.data.refreshToken);
+
+    useAuthStore.getState().setAccessToken(data.data.accessToken);
     return data;
 };
 
-export const refreshToken = async (
-    refreshToken: string
-): Promise<TelegramLoginResponse> => {
-    const { data } = await apiClient.post<TelegramLoginResponse>(
-        "/auth/refresh",
-        { refreshToken }
-    );
+export const refreshAccessToken = async (): Promise<TelegramLoginResponse> => {
+    const { data } = await apiClient.post<TelegramLoginResponse>("/auth/refresh");
     return data;
 };
 
