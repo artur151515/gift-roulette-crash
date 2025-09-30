@@ -10,6 +10,15 @@ export type CaseSummary = {
     rtpAchieved: number;
 };
 
+export interface CreateCaseDto {
+    name: string;
+    description: string;
+    imageUrl?: string;
+    price: number;
+    rtp: number;
+    itemIds: string[];
+}
+
 export type CaseDetails = {
     id: string;
     name: string;
@@ -27,3 +36,13 @@ export type CaseDetails = {
     totalWeight: number;
     itemCount: number;
 };
+
+export interface CasesResponse {
+    cases: CaseSummary[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+}

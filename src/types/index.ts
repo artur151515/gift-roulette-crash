@@ -5,7 +5,7 @@ export interface Case {
   name: string;
   price: number;
   imageUrl: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 export interface CaseItem {
