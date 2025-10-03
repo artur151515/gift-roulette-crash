@@ -30,13 +30,13 @@ export interface OpenCaseResult {
   serverSeedHash: string;
 }
 
-export interface InventoryItem {
-  id: string;
-  name: string;
-  imageUrl: string;
-  price: number;
-  quantity?: number;
-}
+// export interface InventoryItem {
+//   id: string;
+//   name: string;
+//   imageUrl: string;
+//   price: number;
+//   quantity?: number;
+// }
 
 export interface CrashGame {
   isRunning: boolean;

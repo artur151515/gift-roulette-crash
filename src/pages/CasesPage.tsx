@@ -18,7 +18,7 @@ export const CasesPage = () => {
 
     const { data, isLoading, isError } = useQuery<CasesResponse, Error>({
         queryKey: ['cases', 1, 10],
-        queryFn: () => getCases(1, 10),
+        queryFn: () => getCases(),
     });
 
     if (isLoading) return <p>Загрузка...</p>;
