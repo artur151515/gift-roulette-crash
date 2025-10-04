@@ -2,7 +2,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
-import { useInventory } from '@/api/user';
 import telegramService from '@/lib/telegram';
 import ProfileHeader from "@/components/Profile/ProfileHeader.tsx";
 import Inventory from "@/components/Profile/Inventory.tsx";
@@ -11,18 +10,17 @@ import ReferralSystem from "@/components/Profile/ReferralSystem.tsx";
 export const ProfilePage = () => {
   const { user } = useAuthStore();
   const { openDepositModal } = useUIStore();
-  const { data: inventory, isLoading: isLoadingInventory } = useInventory();
 
-  const tg = (window as any)?.Telegram?.WebApp;
+  const tg = (window as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: Record<string, unknown> } } } })?.Telegram?.WebApp;
   const tgUser = tg?.initDataUnsafe?.user;
 
-  const displayFirstName = user?.firstName ?? tgUser?.first_name ?? 'Гость';
-  const displayLastName = user?.lastName ?? tgUser?.last_name ?? '';
-  const displayUsername = user?.username ?? tgUser?.username;
-  const displayLanguage = tgUser?.language_code;
-  const displayId = user?.id ?? tgUser?.id;
+  const displayFirstName = user?.firstName ?? (tgUser?.first_name as string) ?? 'Гость';
+  const displayLastName = user?.lastName ?? (tgUser?.last_name as string) ?? '';
+  const displayUsername = user?.username ?? (tgUser?.username as string);
+  const displayLanguage = tgUser?.language_code as string;
+  const displayId = user?.id ?? (tgUser?.id as number);
   const balance = user?.balance ?? 0;
-  const avatar = tgUser?.photo_url;
+  const avatar = tgUser?.photo_url as string;
 
   const referralLink = `${import.meta.env.VITE_BOT_URL}${displayId ?? '0'}`;
 
@@ -48,7 +46,7 @@ export const ProfilePage = () => {
     });
   };
 
-  // const initData = window.Telegram?.WebApp?.initData;
+  const {accessToken} = useAuthStore();
 
   if (!tgUser && !user) {
     return (
@@ -74,8 +72,8 @@ export const ProfilePage = () => {
               balance={balance}
               avatar={avatar}
           />
-          {/*{initData}*/}
-          <Inventory inventory={inventory} isLoading={isLoadingInventory} />
+          {/*{accessToken}*/}
+          <Inventory />
           <ReferralSystem referralLink={referralLink} onCopyReferralLink={handleCopyReferralLink} />
         </div>
       </div>

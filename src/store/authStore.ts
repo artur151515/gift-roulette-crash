@@ -24,6 +24,7 @@ interface AuthStore {
     // actions
     refresh: () => Promise<void>;
     logout: () => Promise<void>;
+    updateBalance: (delta: number) => void;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -63,6 +64,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             console.warn("Logout failed:", e);
         } finally {
             set({ accessToken: null, user: null });
+        }
+    },
+
+    updateBalance: (delta: number) => {
+        const currentUser = get().user;
+        if (currentUser) {
+            set({
+                user: {
+                    ...currentUser,
+                    balance: (currentUser.balance || 0) + delta,
+                },
+            });
         }
     },
 }));

@@ -1,4 +1,3 @@
-import {Item} from "@/types/new/cases.ts";
 import {PaginationResponse} from "@/types/new/pagination.ts";
 
 export type InventoryStatus =
@@ -7,15 +6,36 @@ export type InventoryStatus =
     | 'SOLD'
     | 'PENDING_FOR_RECEIVAL';
 
-export interface InventoryItem {
-    id: string;                // UUID предмета в инвентаре
-    status: InventoryStatus;   // Текущий статус
-    receivedAt: string | null; // Когда получен
-    soldAt: string | null;     // Когда продан
-    item: Item;                // Сам предмет
+export interface ItemDto {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+    price: number;
+    giftId: string | null;
+    isRandomNFT: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
 
-export interface GetInventoryResponse {
-    items: InventoryItem[];
+export interface InventoryItemDto {
+    id: string;
+    userId: string;
+    itemId: string;
+    status: InventoryStatus;
+    receivedAt: string | null;
+    soldAt: string | null;
+    soldPrice: number | null;
+    createdAt: string;
+    updatedAt: string;
+    item: ItemDto;
+}
+
+export interface GetInventoryResponseDto {
+    items: InventoryItemDto[];
     pagination: PaginationResponse;
+}
+
+export interface SellItemResponse {
+    success: boolean;
+    balanceDelta: number;
 }

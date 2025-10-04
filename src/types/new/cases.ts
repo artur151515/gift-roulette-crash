@@ -1,4 +1,4 @@
-import {InventoryItem} from "@/types/new/inventory.ts";
+// import {InventoryItem} from "@/types/new/inventory.ts";
 import {PaginationResponse} from "@/types/new/pagination.ts";
 
 export interface Item {
@@ -46,7 +46,7 @@ export interface RollDetails {
 
 export interface OpenCaseResponse {
     case: CaseInfo;           // Инфо о кейсе
-    wonItem: InventoryItem;   // Предмет, который выпал (и сразу добавлен в инвентарь)
+    // wonItem: InventoryItem;   // Предмет, который выпал (и сразу добавлен в инвентарь)
     roll: RollDetails;        // Детали расчёта
 }
 
