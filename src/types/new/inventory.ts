@@ -35,7 +35,22 @@ export interface GetInventoryResponseDto {
     pagination: PaginationResponse;
 }
 
+export interface Transaction {
+    id: string;
+    amount: number;
+    type: string;
+    userId: string;
+    metadata: {
+        itemId: string;
+        itemName: string;
+        sellPrice: number;
+        originalPrice: number;
+        inventoryItemId: string;
+    };
+    createdAt: string;
+}
+
 export interface SellItemResponse {
-    success: boolean;
-    balanceDelta: number;
+    inventoryItem: InventoryItemDto;
+    transaction: Transaction;
 }

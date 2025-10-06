@@ -22,9 +22,22 @@ export const useClaimInventoryItem = () => {
         mutationFn: claimInventoryItem,
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['user-inventory'] });
+            
+            // Different messages based on item type and status
+            let title = "Предмет получен!";
+            let description = `Вы успешно получили ${data.item.name}`;
+            
+            if (data.item.isRandomNFT && data.status === 'PENDING_FOR_RECEIVAL') {
+                title = "NFT отправлен на обработку!";
+                description = `${data.item.name} будет отправлен вручную администратором`;
+            } else if (data.item.giftId && data.status === 'RECEIVED') {
+                title = "Подарок отправлен!";
+                description = `${data.item.name} отправлен через Telegram`;
+            }
+            
             toast({
-                title: "Предмет получен!",
-                description: `Вы успешно получили ${data.item.name}`,
+                title,
+                description,
             });
         },
         onError: (error: any) => {
@@ -45,10 +58,11 @@ export const useSellInventoryItem = () => {
         mutationFn: sellInventoryItem,
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['user-inventory'] });
-            updateBalance(data.balanceDelta);
+            // Update balance based on transaction amount
+            updateBalance(data.transaction.amount);
             toast({
                 title: "Предмет продан!",
-                description: `Получено ${data.balanceDelta} звёзд`,
+                description: `Получено ${data.transaction.amount} 💎`,
             });
         },
         onError: (error: any) => {

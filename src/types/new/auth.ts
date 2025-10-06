@@ -14,13 +14,15 @@ export interface AuthTokens {
 }
 
 export type TelegramUser = {
-    id: number;
-    first_name: string;
-    last_name?: string;
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+    telegramId: string;
     username: string;
-    language_code: string;
-    allows_write_to_pm: boolean;
-    photo_url: string;
+    firstName: string;
+    lastName?: string;
+    photoUrl?: string;
+    balance: number;
 };
 
 export type TelegramLoginResponse = {

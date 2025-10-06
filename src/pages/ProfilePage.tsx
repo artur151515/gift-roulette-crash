@@ -4,8 +4,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import telegramService from '@/lib/telegram';
 import ProfileHeader from "@/components/Profile/ProfileHeader.tsx";
-import Inventory from "@/components/Profile/Inventory.tsx";
 import ReferralSystem from "@/components/Profile/ReferralSystem.tsx";
+import {Inventory} from "@/components/Profile/inventory";
 
 export const ProfilePage = () => {
     const { user } = useAuthStore();
@@ -73,7 +73,7 @@ export const ProfilePage = () => {
                     balance={balance}
                     avatar={avatar}
                 />
-                {/*{initData}*/}
+                {accessToken}
                 <Inventory />
                 <ReferralSystem referralLink={referralLink} onCopyReferralLink={handleCopyReferralLink} />
             </div>
