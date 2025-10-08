@@ -1,21 +1,14 @@
 import { create } from "zustand";
-import { apiClient } from "@/api/new/apiClient.ts";
-
-interface User {
-    firstName?: string;
-    lastName?: string;
-    username?: string;
-    balance?: number;
-    photoUrl?: string;
-    id?: number;
-}
+import { apiClient } from "@/api/apiClient.ts";
+import { TelegramUser } from "@/types/new/auth.ts";
+import { getCurrentUser } from "@/api/auth.ts";
 
 interface AuthStore {
-    user: User | null;
+    user: TelegramUser | null;
     accessToken: string | null;
 
     // setters
-    setUser: (user: User | null) => void;
+    setUser: (user: TelegramUser | null) => void;
 
     // tokens
     setAccessToken: (token: string | null) => void;
@@ -25,6 +18,8 @@ interface AuthStore {
     refresh: () => Promise<void>;
     logout: () => Promise<void>;
     updateBalance: (delta: number) => void;
+    setBalance: (newBalance: number) => void;
+    fetchCurrentUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -76,6 +71,28 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                     balance: (currentUser.balance || 0) + delta,
                 },
             });
+        }
+    },
+
+    setBalance: (newBalance: number) => {
+        const currentUser = get().user;
+        if (currentUser) {
+            set({
+                user: {
+                    ...currentUser,
+                    balance: newBalance,
+                },
+            });
+        }
+    },
+
+    fetchCurrentUser: async () => {
+        try {
+            const userData = await getCurrentUser();
+            set({ user: userData });
+        } catch (error) {
+            console.error('Failed to fetch current user:', error);
+            // Don't clear auth on fetch error, just log it
         }
     },
 }));

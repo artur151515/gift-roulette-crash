@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { AppRouter } from "./app/router";
 import { useAuthStore } from "@/store/authStore";
-import {loginWithTelegram} from "@/api/new/auth.ts";
+import {loginWithTelegram} from "@/api/auth.ts";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -29,11 +29,14 @@ const App = () => {
     const [isBootstrapping, setIsBootstrapping] = useState(true);
     const setAccessToken = useAuthStore((s) => s.setAccessToken);
     const setUser = useAuthStore((s) => s.setUser);
+    const fetchCurrentUser = useAuthStore((s) => s.fetchCurrentUser);
 
     useEffect(() => {
         (async () => {
             try {
                 await useAuthStore.getState().refresh();
+                // After successful refresh, fetch current user data
+                await fetchCurrentUser();
             } catch {
                 try {
                     const params = new URLSearchParams(window.location.search);
@@ -45,6 +48,8 @@ const App = () => {
                         // отправляем initData на бекенд; бекенд должен установить httponly refresh cookie и вернуть accessToken
                         const res = await loginWithTelegram(initData);
                         window.history.replaceState({}, "", window.location.pathname);
+                        // After successful login, fetch current user data
+                        await fetchCurrentUser();
                     } else {
                         // нет initData и нет valid refresh — пользователь не аутентифицирован
                         // если у тебя нет логина — можно показать кнопку Login Widget в UI
@@ -56,7 +61,7 @@ const App = () => {
                 setIsBootstrapping(false);
             }
         })();
-    }, [setAccessToken, setUser]);
+    }, [setAccessToken, setUser, fetchCurrentUser]);
 
     if (isBootstrapping) {
         return (

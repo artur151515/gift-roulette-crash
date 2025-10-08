@@ -1,5 +1,5 @@
-import { apiClient } from "./apiClient";
-import { TelegramLoginResponse, TelegramUser } from "@/types/new/auth.ts";
+import { apiClient } from "./apiClient.ts";
+import {GetMeResponse, TelegramLoginResponse, TelegramUser} from "@/types/new/auth.ts";
 import {useAuthStore} from "@/store/authStore.ts";
 
 export const loginWithTelegram = async (
@@ -20,6 +20,6 @@ export const refreshAccessToken = async (): Promise<TelegramLoginResponse> => {
 };
 
 export const getCurrentUser = async (): Promise<TelegramUser> => {
-    const { data } = await apiClient.get<TelegramUser>("/auth/me");
-    return data;
+    const { data } = await apiClient.get<GetMeResponse>("/auth/me");
+    return data.data;
 };

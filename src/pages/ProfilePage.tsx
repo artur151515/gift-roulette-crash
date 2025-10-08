@@ -18,9 +18,9 @@ export const ProfilePage = () => {
     const displayLastName = user?.lastName ?? (tgUser?.last_name as string) ?? '';
     const displayUsername = user?.username ?? (tgUser?.username as string);
     const displayLanguage = tgUser?.language_code as string;
-    const displayId = user?.id ?? (tgUser?.id as number);
+    const displayId = user?.telegramId ? parseInt(user.telegramId) : (tgUser?.id as number);
     const balance = user?.balance ?? 0;
-    const avatar = tgUser?.photo_url as string;
+    const avatar = user?.photoUrl ?? (tgUser?.photo_url as string);
 
     const referralLink = `${import.meta.env.VITE_BOT_URL}${displayId ?? '0'}`;
 

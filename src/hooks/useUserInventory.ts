@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
-import { getUserInventory, claimInventoryItem, sellInventoryItem } from '@/api/new/inventory';
+import { getUserInventory, claimInventoryItem, sellInventoryItem } from '@/api/inventory.ts';
 import { InventoryStatus } from '@/types/new/inventory';
 import { useAuthStore } from '@/store/authStore';
 
@@ -52,14 +52,16 @@ export const useClaimInventoryItem = () => {
 
 export const useSellInventoryItem = () => {
     const queryClient = useQueryClient();
-    const { updateBalance } = useAuthStore();
+    const { updateBalance, fetchCurrentUser } = useAuthStore();
 
     return useMutation({
         mutationFn: sellInventoryItem,
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
             queryClient.invalidateQueries({ queryKey: ['user-inventory'] });
             // Update balance based on transaction amount
             updateBalance(data.transaction.amount);
+            // Also fetch fresh user data to ensure balance is accurate
+            await fetchCurrentUser();
             toast({
                 title: "Предмет продан!",
                 description: `Получено ${data.transaction.amount} 💎`,

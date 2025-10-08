@@ -25,6 +25,11 @@ export type TelegramUser = {
     balance: number;
 };
 
+export type GetMeResponse = {
+    success: boolean;
+    data: TelegramUser;
+}
+
 export type TelegramLoginResponse = {
     success: boolean;
     data: {

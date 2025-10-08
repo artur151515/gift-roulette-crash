@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CaseCard } from '@/components/CaseCard';
 import { cn } from '@/lib/utils';
-import { getCases } from '@/api/new/cases';
+import { getCases } from '@/api/cases.ts';
 import { useQuery } from '@tanstack/react-query';
 import type { CaseType } from '@/types';
 import type { CasesResponse, CaseSummary } from '@/types/new/cases';
