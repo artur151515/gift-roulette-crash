@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { CaseItem } from '@/types';
+import type { CaseItemDto } from '@/types/new/cases';
 import telegramService from '@/lib/telegram';
 
 interface RouletteStripProps {
-    items: CaseItem[];
-    onSpin?: (result: CaseItem) => void;
+    items: CaseItemDto[];
+    onSpin?: (result: CaseItemDto) => void;
     disabled?: boolean;
+    isSpinning?: boolean;
+    wonItem?: CaseItemDto | null;
     // Optional props to make component configurable / responsive
     itemWidth?: number;
     visibleItems?: number;
@@ -19,12 +21,14 @@ export const RouletteStrip = ({
                                   items,
                                   onSpin,
                                   disabled = false,
+                                  isSpinning: externalSpinning = false,
+                                  wonItem = null,
                                   itemWidth = 104,
                                   visibleItems = 7,
                                   height = 120,
                               }: RouletteStripProps) => {
     const [isAnimating, setIsAnimating] = useState(false); // when transform transition is running
-    const [spinResult, setSpinResult] = useState<CaseItem | null>(null);
+    const [spinResult, setSpinResult] = useState<CaseItemDto | null>(null);
     const stripRef = useRef<HTMLDivElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const animationCleanupRef = useRef<() => void>(() => {});
@@ -58,13 +62,13 @@ export const RouletteStrip = ({
 
     // Compute minimal repeats to ensure we can move to a middle area without rendering too many elements
     const extendedItems = React.useMemo(() => {
-        if (!items || items.length === 0) return [] as CaseItem[];
+        if (!items || items.length === 0) return [] as CaseItemDto[];
 
         // Determine how many items we need at minimum so that middle region exists and visible items fill space
         const minDistanceInItems = visibleItems * 3; // allow enough room to land near center
         const repeats = Math.max(3, Math.ceil((minDistanceInItems + visibleItems) / items.length));
 
-        const arr: CaseItem[] = [];
+        const arr: CaseItemDto[] = [];
         for (let i = 0; i < repeats; i++) arr.push(...items);
         return arr;
     }, [items, visibleItems]);
@@ -78,12 +82,49 @@ export const RouletteStrip = ({
         };
     }, []);
 
-    const finishSpin = useCallback((result: CaseItem) => {
+    const finishSpin = useCallback((result: CaseItemDto) => {
         setIsAnimating(false);
         setSpinResult(result);
         onSpin?.(result);
         telegramService.notificationOccurred('success');
     }, [onSpin]);
+    
+    // Handle external spinning control
+    useEffect(() => {
+        if (externalSpinning && wonItem) {
+            setIsAnimating(true);
+            setSpinResult(null);
+            
+            // Find the won item index in the original items array
+            const resultIndex = items.findIndex(item => item.id === wonItem.id);
+            
+            if (resultIndex === -1) return;
+            
+            // Choose a central target within the extended array
+            const middleIndex = Math.floor(extendedItems.length / 2);
+            const targetIndex = middleIndex + resultIndex;
+            
+            const finalPosition = -(targetIndex * itemWidth - containerWidth / 2 + itemWidth / 2);
+            
+            if (!stripRef.current) return;
+            
+            // Set transition & translate
+            stripRef.current.style.willChange = 'transform';
+            stripRef.current.style.transition = 'transform 3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            stripRef.current.style.transform = `translate3d(${finalPosition}px, 0, 0)`;
+            
+            // Set timeout to finish the spin
+            const timeoutId = setTimeout(() => {
+                if (stripRef.current) {
+                    stripRef.current.style.transition = 'none';
+                    stripRef.current.style.transform = 'translate3d(0,0,0)';
+                }
+                finishSpin(wonItem);
+            }, 3000);
+            
+            return () => clearTimeout(timeoutId);
+        }
+    }, [externalSpinning, wonItem, items, extendedItems, itemWidth, containerWidth, finishSpin]);
 
     const handleDemoSpin = useCallback(() => {
         if (isAnimating || disabled || items.length === 0) return;
@@ -160,11 +201,21 @@ export const RouletteStrip = ({
     // Accessibility: announce result to screen readers
     // A small offscreen live region
 
-    const rarityColors: Record<string, string> = {
-        common: 'border-muted bg-muted/10',
-        rare: 'border-blue-500/50 bg-blue-500/10',
-        epic: 'border-purple-500/50 bg-purple-500/10',
-        legendary: 'border-yellow-500/50 bg-yellow-500/10',
+    const getItemImage = (item: CaseItemDto) => {
+        if (item.imageUrl) {
+            return (
+                <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="w-12 h-12 mx-auto rounded-lg object-cover"
+                />
+            );
+        }
+        return (
+            <div className="w-12 h-12 mx-auto rounded-lg bg-background/50 flex items-center justify-center text-xl">
+                🎁
+            </div>
+        );
     };
 
     // Key handlers: allow Space/Enter to spin
@@ -209,16 +260,13 @@ export const RouletteStrip = ({
                                 <div
                                     key={`${item.id}-${index}`}
                                     className={cn(
-                                        'flex-shrink-0 p-2 border-r border-border/30 last:border-r-0',
-                                        rarityColors[item.rarity] ?? 'border-muted bg-muted/10'
+                                        'flex-shrink-0 p-2 border-r border-border/30 last:border-r-0 bg-card/50'
                                     )}
                                     style={{ width: itemWidth }}
                                 >
                                     <div className="text-center space-y-1">
-                                        {/* Item image placeholder */}
-                                        <div className="w-12 h-12 mx-auto rounded-lg bg-background/50 flex items-center justify-center text-xl">
-                                            🎁
-                                        </div>
+                                        {/* Item image */}
+                                        {getItemImage(item)}
 
                                         {/* Item name */}
                                         <p className="text-xs font-medium text-foreground line-clamp-1">{item.name}</p>
@@ -269,7 +317,15 @@ export const RouletteStrip = ({
                     <div className="animate-scale-in bg-card/80 backdrop-blur-md rounded-lg p-4 border border-border">
                         <p className="text-sm text-muted-foreground mb-2">Поздравляем!</p>
                         <div className="flex items-center justify-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">🎁</div>
+                            {spinResult.imageUrl ? (
+                                <img
+                                    src={spinResult.imageUrl}
+                                    alt={spinResult.name}
+                                    className="w-10 h-10 rounded-lg object-cover"
+                                />
+                            ) : (
+                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">🎁</div>
+                            )}
                             <div>
                                 <p className="font-semibold text-foreground">{spinResult.name}</p>
                                 <Badge variant="outline" className="text-xs">

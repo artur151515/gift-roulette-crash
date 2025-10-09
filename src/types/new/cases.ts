@@ -15,6 +15,46 @@ export interface CasesResponse {
     pagination: PaginationResponse;
 }
 
+export interface CaseItemDto {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+    price: number;
+    giftId: string | null;
+    isRandomNFT: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CaseItemWithWeight {
+    item: CaseItemDto;
+    weight: number;
+    probability: number;
+}
+
+export interface CaseDetailsDto {
+    id: string;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    price: number;
+    createdAt: string;
+    updatedAt: string;
+    items: CaseItemWithWeight[];
+    totalWeight: number;
+    itemCount: number;
+}
+
+export interface OpenCaseResultDto {
+    result: {
+        itemId: string;
+        name: string;
+        imageUrl: string | null;
+        price: number;
+    };
+    serverSeedHash: string;
+}
+
 export interface CreateCaseDto {
     name: string;
     description: string;

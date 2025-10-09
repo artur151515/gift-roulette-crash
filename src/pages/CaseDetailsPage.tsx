@@ -1,164 +1,288 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RouletteStrip } from '@/components/RouletteStrip';
-import { useUIStore } from '@/store/uiStore';
-import { useAuthStore } from '@/store/authStore';
-import { cn } from '@/lib/utils';
-import type { CaseItem } from '@/types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import telegramService from '@/lib/telegram';
-
-// Demo case details
-const DEMO_CASE_ITEMS: CaseItem[] = [
-    { id: '1', name: 'Common Item', imageUrl: '', price: 10, rarity: 'common' },
-    { id: '2', name: 'Rare Prize', imageUrl: '', price: 50, rarity: 'rare' },
-    { id: '3', name: 'Epic Reward', imageUrl: '', price: 150, rarity: 'epic' },
-    { id: '4', name: 'Legendary Gift', imageUrl: '', price: 500, rarity: 'legendary' },
-    { id: '5', name: 'Silver Star', imageUrl: '', price: 75, rarity: 'rare' },
-    { id: '6', name: 'Gold Crown', imageUrl: '', price: 200, rarity: 'epic' },
-];
+import { getCaseDetails, openCase } from '@/api/cases';
+import { useAuthStore } from '@/store/authStore';
+import type { CaseItemDto } from '@/types/new/cases';
+import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 export const CaseDetailsPage = () => {
-    const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
-    const { user } = useAuthStore();
-    const { openCaseOpenModal } = useUIStore();
+	const { id } = useParams<{ id: string }>();
+	const navigate = useNavigate();
+	const { user, updateBalance, fetchCurrentUser } = useAuthStore();
+	const queryClient = useQueryClient();
+	const [isSpinning, setIsSpinning] = useState(false);
+	const [wonItem, setWonItem] = useState<CaseItemDto | null>(null);
 
-    // For demo, we'll use mock data
-    const caseDetails = {
-        id: id || '1',
-        name: `Case #${id}`,
-        price: parseFloat(id || '1'),
-        imageUrl: '',
-        rarity: 'rare' as const,
-        items: DEMO_CASE_ITEMS
-    };
+	const { data: caseDetails, isLoading, isError } = useQuery({
+		queryKey: ['case', id],
+		queryFn: () => getCaseDetails(id!),
+		enabled: !!id,
+	});
 
-    const handleBack = () => {
-        navigate('/cases');
-    };
+	const openCaseMutation = useMutation({
+		mutationFn: () => openCase(id!),
+		onSuccess: async (result) => {
+			// Обновляем баланс (вычитаем стоимость кейса)
+			if (caseDetails) {
+				updateBalance(-caseDetails.price);
+			}
 
-    const handleOpenCase = () => {
-        if (!user || user.balance < caseDetails.price) {
-            telegramService.notificationOccurred('error');
-            return;
-        }
+			// Находим выигранный предмет в списке items
+			const itemWithWeight = caseDetails?.items.find(
+				(itemData) => itemData.item.id === result.result.itemId
+			);
 
-        telegramService.impactOccurred('medium');
-        openCaseOpenModal(caseDetails.id);
-    };
+			if (itemWithWeight) {
+				setWonItem(itemWithWeight.item);
+				setIsSpinning(true);
+			}
 
-    const handleRouletteResult = (result: CaseItem) => {
-        console.log('Demo roulette result:', result);
-    };
+			// Обновляем данные пользователя и инвентарь
+			await fetchCurrentUser();
+			queryClient.invalidateQueries({ queryKey: ['user-inventory'] });
 
-    const rarityColors = {
-        common: 'bg-muted/10 text-muted-foreground border-muted',
-        rare: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-        epic: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-        legendary: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-    };
+			toast({
+				title: "Кейс открыт!",
+				description: `Вы получили: ${result.result.name}`,
+			});
+		},
+		onError: (error: any) => {
+			telegramService.notificationOccurred('error');
+			toast({
+				title: "Ошибка",
+				description: error.response?.data?.message || "Не удалось открыть кейс",
+				variant: "destructive",
+			});
+		},
+	});
 
-    const canAfford = user && user.balance >= caseDetails.price;
+	const handleBack = () => {
+		navigate('/cases');
+	};
 
-    return (
-        <div className="flex-1 pb-20">
-            {/* Header */}
-            <div className="sticky bg-background/95 backdrop-blur-md border-b border-border z-40">
-                <div className="flex items-center gap-4 p-4">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleBack}
-                        className="h-8 w-8 p-0"
-                    >
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
+	const handleOpenCase = () => {
+		if (!caseDetails || !user || user.balance < caseDetails.price) {
+			telegramService.notificationOccurred('error');
+			toast({
+				title: "Недостаточно средств",
+				description: `Нужно еще 💎${(caseDetails?.price || 0) - (user?.balance || 0)}`,
+				variant: "destructive",
+			});
+			return;
+		}
 
-                    <div className="flex-1">
-                        <h1 className="font-bold text-lg text-foreground">
-                            {caseDetails.id}
-                        </h1>
-                    </div>
+		telegramService.impactOccurred('medium');
+		openCaseMutation.mutate();
+	};
 
-                    <Badge
-                        variant="outline"
-                        className={cn("font-semibold", rarityColors[caseDetails.rarity])}
-                    >
-                        💎 {caseDetails.price}
-                    </Badge>
-                </div>
-            </div>
+	const handleRouletteResult = (result: CaseItemDto) => {
+		console.log('Roulette result:', result);
+		setIsSpinning(false);
+		setWonItem(null);
+	};
 
-            <div className="p-4 space-y-8">
-                {/* Roulette Section */}
-                <div className="space-y-4">
-                    <h2 className="text-xl font-bold text-foreground">
-                        Демо рулетка
-                    </h2>
-                    <RouletteStrip
-                        items={caseDetails.items}
-                        onSpin={handleRouletteResult}
-                    />
-                </div>
+	if (isLoading) {
+		return (
+			<div className="flex-1 pb-20">
+				<div className="sticky bg-background/95 backdrop-blur-md border-b border-border z-40">
+					<div className="flex items-center gap-4 p-4">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={handleBack}
+							className="h-8 w-8 p-0"
+						>
+							<ArrowLeft className="h-5 w-5" />
+						</Button>
+						<Skeleton className="h-6 w-32" />
+						<div className="flex-1" />
+						<Skeleton className="h-6 w-20" />
+					</div>
+				</div>
+				<div className="p-4 space-y-8">
+					<Skeleton className="h-40 rounded-xl" />
+					<div className="space-y-4">
+						<Skeleton className="h-8 w-32" />
+						<div className="grid grid-cols-3 gap-3">
+							{Array.from({ length: 6 }).map((_, i) => (
+								<Skeleton key={i} className="aspect-square rounded-lg" />
+							))}
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
-                {/* What's Inside Section */}
-                <div className="space-y-4">
-                    <h2 className="text-xl font-bold text-foreground">
-                        Что внутри?
-                    </h2>
+	if (isError || !caseDetails) {
+		return (
+			<div className="flex-1 pb-20">
+				<div className="sticky bg-background/95 backdrop-blur-md border-b border-border z-40">
+					<div className="flex items-center gap-4 p-4">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={handleBack}
+							className="h-8 w-8 p-0"
+						>
+							<ArrowLeft className="h-5 w-5" />
+						</Button>
+					</div>
+				</div>
+				<div className="p-4">
+					<div className="text-center py-12 space-y-3">
+						<div className="text-4xl mb-4">⚠️</div>
+						<h3 className="text-lg font-semibold text-foreground">
+							Ошибка загрузки
+						</h3>
+						<p className="text-muted-foreground">
+							Не удалось загрузить кейс. Попробуйте позже.
+						</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
-                    <div className="grid grid-cols-3 gap-3">
-                        {caseDetails.items.map((item) => (
-                            <div
-                                key={item.id}
-                                className={cn(
-                                    "p-3 rounded-lg border text-center space-y-2",
-                                    rarityColors[item.rarity]
-                                )}
-                            >
-                                <div className="w-12 h-12 mx-auto rounded-lg bg-background/50 flex items-center justify-center text-xl">
-                                    🎁
-                                </div>
-                                <div>
-                                    <p className="text-xs font-medium line-clamp-1">
-                                        {item.name}
-                                    </p>
-                                    <Badge variant="outline" className="text-xs mt-1">
-                                        💎{item.price}
-                                    </Badge>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+	const canAfford = user && user.balance >= caseDetails.price;
 
-                {/* Open Case Button */}
-                <div className="sticky bottom-20 bg-background/95 backdrop-blur-md p-4 -mx-4 border-t border-border">
-                    <Button
-                        onClick={handleOpenCase}
-                        disabled={!canAfford}
-                        className={cn(
-                            "w-full py-4 text-base font-semibold",
-                            canAfford ? "btn-primary" : "btn-secondary"
-                        )}
-                    >
-                        {!canAfford ? (
-                            <>Недостаточно средств</>
-                        ) : (
-                            <>Демо прокрут 🚀</>
-                        )}
-                    </Button>
+	return (
+		<div className="flex-1 pb-20">
+			{/* Header */}
+			<div className="sticky top-0 bg-background/95 backdrop-blur-md border-b border-border z-40">
+				<div className="flex items-center gap-4 p-4">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={handleBack}
+						className="h-8 w-8 p-0"
+					>
+						<ArrowLeft className="h-5 w-5" />
+					</Button>
 
-                    {!canAfford && user && (
-                        <p className="text-xs text-muted-foreground text-center mt-2">
-                            Нужно еще 💎{(caseDetails.price - user.balance).toFixed(2)}
-                        </p>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+					<div className="flex-1">
+						<h1 className="font-bold text-lg text-foreground">
+							{caseDetails.name}
+						</h1>
+					</div>
+
+					<Badge
+						variant="outline"
+						className="font-semibold"
+					>
+						💎 {caseDetails.price}
+					</Badge>
+				</div>
+			</div>
+
+			<div className="p-4 space-y-8">
+				{/* Case Image */}
+				{caseDetails.imageUrl && (
+					<div className="aspect-video rounded-xl overflow-hidden bg-gradient-to-br from-primary/10 to-accent/10">
+						<img
+							src={caseDetails.imageUrl}
+							alt={caseDetails.name}
+							className="w-full h-full object-cover"
+						/>
+					</div>
+				)}
+
+				{caseDetails.description && (
+					<p className="text-sm text-muted-foreground">
+						{caseDetails.description}
+					</p>
+				)}
+
+				{/* Roulette Section */}
+				<div className="space-y-4">
+					<h2 className="text-xl font-bold text-foreground">
+						Рулетка
+					</h2>
+					<RouletteStrip
+						items={caseDetails.items.map(itemData => itemData.item)}
+						onSpin={handleRouletteResult}
+						isSpinning={isSpinning}
+						wonItem={wonItem}
+					/>
+				</div>
+
+				{/* What's Inside Section */}
+				<div className="space-y-4">
+					<h2 className="text-xl font-bold text-foreground">
+						Что внутри?
+					</h2>
+
+					<div className="grid grid-cols-3 gap-3">
+						{caseDetails.items.map((itemData) => (
+							<div
+								key={itemData.item.id}
+								className={cn(
+									"p-3 rounded-lg border text-center space-y-2 bg-card"
+								)}
+							>
+								<div className="aspect-square w-full mx-auto rounded-lg bg-background/50 flex items-center justify-center overflow-hidden">
+									{itemData.item.imageUrl ? (
+										<img
+											src={itemData.item.imageUrl}
+											alt={itemData.item.name}
+											className="w-full h-full object-cover"
+										/>
+									) : (
+										<span className="text-2xl">🎁</span>
+									)}
+								</div>
+								<div>
+									<p className="text-xs font-medium line-clamp-1">
+										{itemData.item.name}
+									</p>
+									<div className="flex items-center justify-center gap-1.5	 mt-1 flex-col">
+										<Badge variant="outline" className="text-xs">
+											💎{itemData.item.price}
+										</Badge>
+										<Badge variant="secondary" className="text-xs">
+											{itemData.probability.toFixed(1)}%
+										</Badge>
+									</div>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+
+				{/* Open Case Button */}
+				<div className="sticky bottom-20 bg-background/95 backdrop-blur-md p-4 -mx-4 border-t border-border">
+					<Button
+						onClick={handleOpenCase}
+						disabled={!canAfford || openCaseMutation.isPending || isSpinning}
+						className={cn(
+							"w-full py-4 text-base font-semibold",
+							canAfford && !openCaseMutation.isPending && !isSpinning ? "btn-primary" : "btn-secondary"
+						)}
+					>
+						{openCaseMutation.isPending || isSpinning ? (
+							<>Открытие...</>
+						) : !canAfford ? (
+							<>Недостаточно средств</>
+						) : (
+							<>Открыть кейс 🚀</>
+						)}
+					</Button>
+
+					{!canAfford && user && (
+						<p className="text-xs text-muted-foreground text-center mt-2">
+							Нужно еще 💎{(caseDetails.price - user.balance).toFixed(2)}
+						</p>
+					)}
+				</div>
+			</div>
+		</div>
+	);
 };

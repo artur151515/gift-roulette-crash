@@ -1,6 +1,10 @@
 import {apiClient} from "./apiClient.ts";
-import { CaseDetails } from "@/types";
-import {CasesResponse, CaseSummary, CreateCaseDto} from "@/types/new/cases.ts";
+import {
+	CasesResponse,
+	CreateCaseDto,
+	CaseDetailsDto,
+	OpenCaseResultDto
+} from "@/types/new/cases.ts";
 
 export const getCases = async (
 	page?: number,
@@ -12,13 +16,14 @@ export const getCases = async (
 	return data;
 };
 
-export const getCaseDetails = async (id: string): Promise<CaseDetails> => {
-	const { data } = await apiClient.get<CaseDetails>(`/api/cases/${id}`);
+export const getCaseDetails = async (id: string): Promise<CaseDetailsDto> => {
+	const { data } = await apiClient.get<CaseDetailsDto>(`/api/cases/${id}`);
 	return data;
 };
 
-export const openCase = async (id: string): Promise<void> => {
-	await apiClient.post(`/api/cases/${id}/open`);
+export const openCase = async (id: string): Promise<OpenCaseResultDto> => {
+	const { data } = await apiClient.post<OpenCaseResultDto>(`/api/cases/${id}/open`);
+	return data;
 };
 
 export const createCase = async (data: CreateCaseDto) => {
