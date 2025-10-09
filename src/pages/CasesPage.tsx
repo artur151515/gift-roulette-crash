@@ -17,7 +17,7 @@ export const CasesPage = () => {
     const [activeTab, setActiveTab] = useState<CaseType>('paid');
 
     const { data, isLoading, isError } = useQuery<CasesResponse, Error>({
-        queryKey: ['cases', 1, 10],
+        queryKey: ['cases'],
         queryFn: () => getCases(),
     });
 

@@ -48,27 +48,27 @@ export interface CrashGame {
         cashOutMultiplier?: number;
     };
 }
-
-export interface DepositInvoice {
-    invoiceId: string;
-    payUrl: string;
-}
+//
+// export interface DepositInvoice {
+//     invoiceId: string;
+//     payUrl: string;
+// }
 
 export type CurrencyType = 'gifts' | 'ton';
 export type CaseType = 'paid' | 'free';
 
-// API Response types
-export interface ApiResponse<T> {
-    data: T;
-    success: boolean;
-    message?: string;
-}
-
-export interface AuthResponse {
-    accessToken: string;
-    refreshToken: string;
-    user: User;
-}
+// // API Response types
+// export interface ApiResponse<T> {
+//     data: T;
+//     success: boolean;
+//     message?: string;
+// }
+//
+// export interface AuthResponse {
+//     accessToken: string;
+//     refreshToken: string;
+//     user: User;
+// }
 
 // Telegram WebApp types
 export interface TelegramWebApp {
@@ -101,10 +101,10 @@ export interface TelegramWebApp {
     viewportStableHeight: number;
 }
 
-declare global {
-    interface Window {
-        Telegram?: {
-            WebApp: TelegramWebApp;
-        };
-    }
-}
+// declare global {
+//     interface Window {
+//         Telegram?: {
+//             WebApp: TelegramWebApp;
+//         };
+//     }
+// }

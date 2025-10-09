@@ -10,15 +10,15 @@ export const getUserInventory = async (
     const { data } = await apiClient.get("/api/user-inventory", {
         params: { page, limit, status },
     });
-    return data.data; // Extract the nested data from the API response
+    return data.data;
 };
 
 export const claimInventoryItem = async (id: string): Promise<InventoryItemDto> => {
     const { data } = await apiClient.post(`/api/user-inventory/${id}/claim`);
-    return data.data; // Handle both wrapped and direct responses
+    return data.data;
 };
 
 export const sellInventoryItem = async (id: string): Promise<SellItemResponse> => {
     const { data } = await apiClient.post(`/api/user-inventory/${id}/sell`);
-    return data.data; // Handle both wrapped and direct responses
+    return data.data;
 };
