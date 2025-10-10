@@ -1,6 +1,6 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { InventoryItemDto } from "@/types/new/inventory";
+import { InventoryItemDto } from "@/types/inventory.ts";
 import { getStatusColor, getStatusLabel } from "./utils";
 
 interface InventoryItemProps {

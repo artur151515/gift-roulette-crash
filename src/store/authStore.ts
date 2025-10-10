@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { apiClient } from "@/api/apiClient.ts";
-import { TelegramUser } from "@/types/new/auth.ts";
+import { TelegramUser } from "@/types/auth.ts";
 import { getCurrentUser } from "@/api/auth.ts";
 
 interface AuthStore {

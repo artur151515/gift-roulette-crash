@@ -4,7 +4,7 @@ import {
 	CreateCaseDto,
 	CaseDetailsDto,
 	OpenCaseResultDto
-} from "@/types/new/cases.ts";
+} from "@/types/cases.ts";
 
 export const getCases = async (
 	page?: number,

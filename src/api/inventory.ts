@@ -1,6 +1,6 @@
 import {apiClient} from "./apiClient.ts";
-import { GetInventoryResponseDto, InventoryItemDto, SellItemResponse } from "@/types/new/inventory.ts";
-import { InventoryStatus } from "@/types/new/inventory.ts";
+import { GetInventoryResponseDto, InventoryItemDto, SellItemResponse } from "@/types/inventory.ts";
+import { InventoryStatus } from "@/types/inventory.ts";
 
 export const getUserInventory = async (
     page?: number,

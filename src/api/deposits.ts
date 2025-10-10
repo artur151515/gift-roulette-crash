@@ -1,5 +1,5 @@
 import {apiClient} from "./apiClient.ts";
-import { CreateInvoiceResponse, DepositStatus } from "@/types/new/deposits.ts";
+import { CreateInvoiceResponse, DepositStatus } from "@/types/deposits.ts";
 
 export const createInvoice = async (
     amount: number

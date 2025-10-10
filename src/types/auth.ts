@@ -10,7 +10,7 @@ export interface User {
 export interface AuthTokens {
     accessToken: string;
     refreshToken: string;
-    expiresAt?: number; // UNIX seconds (опционально)
+    expiresAt?: number;
 }
 
 export type TelegramUser = {

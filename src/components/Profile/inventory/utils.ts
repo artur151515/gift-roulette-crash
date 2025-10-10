@@ -1,4 +1,4 @@
-import { InventoryStatus } from "@/types/new/inventory";
+import { InventoryStatus } from "@/types/inventory.ts";
 
 export const getStatusColor = (status: InventoryStatus) => {
 	switch (status) {

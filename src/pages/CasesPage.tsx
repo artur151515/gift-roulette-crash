@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CaseCard } from '@/components/CaseCard';
 import { getCases } from '@/api/cases.ts';
 import { useQuery } from '@tanstack/react-query';
-import type { CasesResponse } from '@/types/new/cases';
+import type { CasesResponse } from '@/types/cases.ts';
 
 export const CasesPage = () => {
     const { data, isLoading, isError } = useQuery<CasesResponse, Error>({

@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Gift, Package, Clock, CheckCircle } from "lucide-react";
-import { InventoryItemDto } from "@/types/new/inventory";
+import { InventoryItemDto } from "@/types/inventory.ts";
 import { getStatusColor, getStatusLabel } from "./utils";
 
 interface ItemActionDialogProps {

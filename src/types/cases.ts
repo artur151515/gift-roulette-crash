@@ -1,4 +1,5 @@
-import {PaginationResponse} from "@/types/new/pagination.ts";
+import {PaginationResponse} from "@/types/pagination.ts";
+import {ItemDto} from "@/types/inventory.ts";
 
 export interface CaseSummary {
     id: string;
@@ -15,19 +16,8 @@ export interface CasesResponse {
     pagination: PaginationResponse;
 }
 
-export interface CaseItemDto {
-    id: string;
-    name: string;
-    imageUrl: string | null;
-    price: number;
-    giftId: string | null;
-    isRandomNFT: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
-
 export interface CaseItemWithWeight {
-    item: CaseItemDto;
+    item: ItemDto;
     weight: number;
     probability: number;
 }

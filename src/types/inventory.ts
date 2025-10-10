@@ -1,4 +1,4 @@
-import {PaginationResponse} from "@/types/new/pagination.ts";
+import {PaginationResponse} from "@/types/pagination.ts";
 
 export type InventoryStatus =
     | 'AVAILABLE'

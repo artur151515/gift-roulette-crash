@@ -8,10 +8,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import telegramService from '@/lib/telegram';
 import { getCaseDetails, openCase } from '@/api/cases';
 import { useAuthStore } from '@/store/authStore';
-import type { CaseItemDto } from '@/types/new/cases';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import {ItemDto} from "@/types/inventory.ts";
 
 export const CaseDetailsPage = () => {
 	const { id } = useParams<{ id: string }>();
@@ -19,7 +19,7 @@ export const CaseDetailsPage = () => {
 	const { user, updateBalance, fetchCurrentUser } = useAuthStore();
 	const queryClient = useQueryClient();
 	const [isSpinning, setIsSpinning] = useState(false);
-	const [wonItem, setWonItem] = useState<CaseItemDto | null>(null);
+	const [wonItem, setWonItem] = useState<ItemDto | null>(null);
 
 	const { data: caseDetails, isLoading, isError } = useQuery({
 		queryKey: ['case', id],
@@ -83,7 +83,7 @@ export const CaseDetailsPage = () => {
 		openCaseMutation.mutate();
 	};
 
-	const handleRouletteResult = (result: CaseItemDto) => {
+	const handleRouletteResult = (result: ItemDto) => {
 		console.log('Roulette result:', result);
 		setIsSpinning(false);
 		setWonItem(null);

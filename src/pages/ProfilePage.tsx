@@ -1,7 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/authStore';
-import { useUIStore } from '@/store/uiStore';
 import telegramService from '@/lib/telegram';
 import ProfileHeader from "@/components/Profile/ProfileHeader.tsx";
 import ReferralSystem from "@/components/Profile/ReferralSystem.tsx";
@@ -9,7 +8,6 @@ import {Inventory} from "@/components/Profile/inventory";
 
 export const ProfilePage = () => {
     const { user } = useAuthStore();
-    const { openDepositModal } = useUIStore();
 
     const tg = (window as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: Record<string, unknown> } } } })?.Telegram?.WebApp;
     const tgUser = tg?.initDataUnsafe?.user;
@@ -33,21 +31,20 @@ export const ProfilePage = () => {
         });
     };
 
-    const handleDepositGifts = () => {
-        telegramService.impactOccurred('light');
-        openDepositModal();
-    };
-
-    const handleDepositTON = () => {
-        telegramService.impactOccurred('light');
-        toast({
-            title: "Пополнение TON",
-            description: "Функция будет доступна в ближайшее время",
-        });
-    };
+    // const handleDepositGifts = () => {
+    //     telegramService.impactOccurred('light');
+    // };
+    //
+    // const handleDepositTON = () => {
+    //     telegramService.impactOccurred('light');
+    //     toast({
+    //         title: "Пополнение TON",
+    //         description: "Функция будет доступна в ближайшее время",
+    //     });
+    // };
 
     const {accessToken} = useAuthStore();
-    const initData = window.Telegram?.WebApp?.initData;
+    // const initData = window.Telegram?.WebApp?.initData;
 
     if (!tgUser && !user) {
         return (
@@ -73,7 +70,7 @@ export const ProfilePage = () => {
                     balance={balance}
                     avatar={avatar}
                 />
-                {accessToken}
+                {/*{accessToken}*/}
                 <Inventory />
                 <ReferralSystem referralLink={referralLink} onCopyReferralLink={handleCopyReferralLink} />
             </div>

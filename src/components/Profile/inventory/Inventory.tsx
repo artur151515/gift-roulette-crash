@@ -17,7 +17,7 @@ import {
 import telegramService from "@/lib/telegram";
 import InventoryItemCard from "./InventoryItemCard";
 import ItemActionDialog from "./ItemActionDialog";
-import { InventoryStatus, InventoryItemDto } from "@/types/new/inventory";
+import { InventoryStatus, InventoryItemDto } from "@/types/inventory.ts";
 import { getStatusLabel } from "./utils";
 
 const Inventory: React.FC = () => {
