@@ -20,6 +20,7 @@ export const CaseDetailsPage = () => {
 	const queryClient = useQueryClient();
 	const [isSpinning, setIsSpinning] = useState(false);
 	const [wonItem, setWonItem] = useState<ItemDto | null>(null);
+	const [rollResult, setRollResult] = useState<{ item: ItemDto; probability: number } | null>(null);
 
 	const { data: caseDetails, isLoading, isError } = useQuery({
 		queryKey: ['case', id],
@@ -35,32 +36,36 @@ export const CaseDetailsPage = () => {
 				updateBalance(-caseDetails.price);
 			}
 
-			// Находим выигранный предмет в списке items
-			const itemWithWeight = caseDetails?.items.find(
-				(itemData) => itemData.item.id === result.result.itemId
-			);
-
-			if (itemWithWeight) {
-				setWonItem(itemWithWeight.item);
+			// Получаем выигранный предмет из ответа API
+			const wonItemData = result.inventoryItem.item;
+			
+			if (wonItemData) {
+				// Сохраняем результат для показа после анимации
+				setRollResult({
+					item: wonItemData,
+					probability: result.rollDetails.probability
+				});
+				
+				// Запускаем анимацию рулетки
+				setWonItem(wonItemData);
 				setIsSpinning(true);
 			}
 
 			// Обновляем данные пользователя и инвентарь
 			await fetchCurrentUser();
 			queryClient.invalidateQueries({ queryKey: ['user-inventory'] });
-
-			toast({
-				title: "Кейс открыт!",
-				description: `Вы получили: ${result.result.name}`,
-			});
 		},
-		onError: (error: any) => {
+		onError: (error: { response?: { data?: { message?: string } } }) => {
 			telegramService.notificationOccurred('error');
 			toast({
 				title: "Ошибка",
 				description: error.response?.data?.message || "Не удалось открыть кейс",
 				variant: "destructive",
 			});
+			// Очищаем состояние анимации при ошибке
+			setIsSpinning(false);
+			setWonItem(null);
+			setRollResult(null);
 		},
 	});
 
@@ -69,6 +74,11 @@ export const CaseDetailsPage = () => {
 	};
 
 	const handleOpenCase = () => {
+		// Предотвращаем повторное открытие во время анимации
+		if (isSpinning || openCaseMutation.isPending) {
+			return;
+		}
+
 		if (!caseDetails || !user || user.balance < caseDetails.price) {
 			telegramService.notificationOccurred('error');
 			toast({
@@ -87,6 +97,15 @@ export const CaseDetailsPage = () => {
 		console.log('Roulette result:', result);
 		setIsSpinning(false);
 		setWonItem(null);
+		
+		// Показываем toast только после завершения анимации
+		if (rollResult) {
+			toast({
+				title: "Поздравляем! 🎉",
+				description: `Вы получили: ${rollResult.item.name} (${rollResult.probability.toFixed(1)}%)`,
+			});
+			setRollResult(null); // Очищаем результат
+		}
 	};
 
 	if (isLoading) {
@@ -207,7 +226,7 @@ export const CaseDetailsPage = () => {
 						Рулетка
 					</h2>
 					<RouletteStrip
-						items={caseDetails.items.map(itemData => itemData.item)}
+						items={caseDetails.items}
 						onSpin={handleRouletteResult}
 						isSpinning={isSpinning}
 						wonItem={wonItem}

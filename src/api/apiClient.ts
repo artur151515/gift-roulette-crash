@@ -8,9 +8,10 @@ export const apiClient = axios.create({
 	withCredentials: true,
 });
 
-// Добавляем accessToken к каждому запросу
+// Добавление accessToken к каждому запросу
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-	const token = useAuthStore.getState().accessToken;
+	const authStore = useAuthStore.getState();
+	const token = authStore.accessToken;
 	if (token) {
 		config.headers.Authorization = `Bearer ${token}`;
 	}

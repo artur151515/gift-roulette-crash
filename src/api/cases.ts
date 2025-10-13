@@ -22,8 +22,8 @@ export const getCaseDetails = async (id: string): Promise<CaseDetailsDto> => {
 };
 
 export const openCase = async (id: string): Promise<OpenCaseResultDto> => {
-	const { data } = await apiClient.post<OpenCaseResultDto>(`/api/cases/${id}/open`);
-	return data;
+	const { data } = await apiClient.post<{ success: boolean; data: OpenCaseResultDto }>(`/api/cases/${id}/open`);
+	return data.data; // Extract nested data from API response
 };
 
 export const createCase = async (data: CreateCaseDto) => {

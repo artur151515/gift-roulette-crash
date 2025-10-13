@@ -4,9 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import telegramService from '@/lib/telegram';
 import {ItemDto} from "@/types/inventory.ts";
+import {CaseItemWithWeight} from "@/types/cases.ts";
 
 interface RouletteStripProps {
-	items: ItemDto[];
+	items: ItemDto[] | CaseItemWithWeight[];
 	onSpin?: (result: ItemDto) => void;
 	disabled?: boolean;
 	isSpinning?: boolean;
@@ -59,18 +60,56 @@ export const RouletteStrip = ({
 		return () => ro.disconnect();
 	}, [itemWidth, visibleItems]);
 
+	// Helper function to check if items have weights (CaseItemWithWeight[])
+	const hasWeights = (items: ItemDto[] | CaseItemWithWeight[]): items is CaseItemWithWeight[] => {
+		return items.length > 0 && 'weight' in items[0];
+	};
+
+	// Generate weighted strip based on probabilities
+	const generateWeightedStrip = useCallback((itemsWithWeights: CaseItemWithWeight[], totalCount: number): ItemDto[] => {
+		const strip: ItemDto[] = [];
+		
+		// Calculate how many times each item should appear based on probability
+		itemsWithWeights.forEach(itemData => {
+			// Calculate count based on probability (normalized to totalCount)
+			const count = Math.max(1, Math.round((itemData.probability / 100) * totalCount));
+			for (let i = 0; i < count; i++) {
+				strip.push(itemData.item);
+			}
+		});
+
+		// Shuffle the strip to make it look more random
+		for (let i = strip.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[strip[i], strip[j]] = [strip[j], strip[i]];
+		}
+
+		return strip;
+	}, []);
+
 	// Compute minimal repeats to ensure we can move to a middle area without rendering too many elements
 	const extendedItems = React.useMemo(() => {
 		if (!items || items.length === 0) return [] as ItemDto[];
 
+		let baseStrip: ItemDto[];
+
+		if (hasWeights(items)) {
+			// Generate weighted strip (more frequent items appear more often)
+			const stripSize = Math.max(50, visibleItems * 10); // Generate enough items for variety
+			baseStrip = generateWeightedStrip(items, stripSize);
+		} else {
+			// Original behavior for simple ItemDto[]
+			baseStrip = items as ItemDto[];
+		}
+
 		// Determine how many items we need at minimum so that middle region exists and visible items fill space
 		const minDistanceInItems = visibleItems * 3; // allow enough room to land near center
-		const repeats = Math.max(3, Math.ceil((minDistanceInItems + visibleItems) / items.length));
+		const repeats = Math.max(3, Math.ceil((minDistanceInItems + visibleItems) / baseStrip.length));
 
 		const arr: ItemDto[] = [];
-		for (let i = 0; i < repeats; i++) arr.push(...items);
+		for (let i = 0; i < repeats; i++) arr.push(...baseStrip);
 		return arr;
-	}, [items, visibleItems]);
+	}, [items, visibleItems, generateWeightedStrip]);
 
 	// Cleanup on unmount: remove listeners and cancel any pending state changes
 	useEffect(() => {
@@ -88,42 +127,110 @@ export const RouletteStrip = ({
 		telegramService.notificationOccurred('success');
 	}, [onSpin]);
 
-	// Handle external spinning control
+	// Handle external spinning control (when server sends won item)
 	useEffect(() => {
 		if (externalSpinning && wonItem) {
 			setIsAnimating(true);
 			setSpinResult(null);
 
-			// Find the won item index in the original items array
-			const resultIndex = items.findIndex(item => item.id === wonItem.id);
+			// Find the won item in the extended strip
+			// We look in the middle third of the strip for a smooth landing
+			const middleStart = Math.floor(extendedItems.length / 3);
+			const middleEnd = Math.floor((extendedItems.length * 2) / 3);
+			const middleSection = extendedItems.slice(middleStart, middleEnd);
+			
+			// Find the first occurrence of won item in middle section
+			const relativeIndex = middleSection.findIndex(item => item.id === wonItem.id);
+			
+			let timeoutId: NodeJS.Timeout | null = null;
 
-			if (resultIndex === -1) return;
-
-			// Choose a central target within the extended array
-			const middleIndex = Math.floor(extendedItems.length / 2);
-			const targetIndex = middleIndex + resultIndex;
-
-			const finalPosition = -(targetIndex * itemWidth - containerWidth / 2 + itemWidth / 2);
-
-			if (!stripRef.current) return;
-
-			// Set transition & translate
-			stripRef.current.style.willChange = 'transform';
-			stripRef.current.style.transition = 'transform 3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-			stripRef.current.style.transform = `translate3d(${finalPosition}px, 0, 0)`;
-
-			// Set timeout to finish the spin
-			const timeoutId = setTimeout(() => {
-				if (stripRef.current) {
-					stripRef.current.style.transition = 'none';
-					stripRef.current.style.transform = 'translate3d(0,0,0)';
+			if (relativeIndex === -1) {
+				// If not found in middle, find anywhere in extended items
+				const anyIndex = extendedItems.findIndex(item => item.id === wonItem.id);
+				if (anyIndex === -1) {
+					console.error('Won item not found in strip:', wonItem);
+					setIsAnimating(false);
+					return;
 				}
-				finishSpin(wonItem);
-			}, 3000);
+				// Use found index
+				const targetIndex = anyIndex;
+				const finalPosition = -(targetIndex * itemWidth - containerWidth / 2 + itemWidth / 2);
+				
+				// Animate to position
+				if (stripRef.current) {
+					const startOffset = Math.random() * itemWidth * 2;
+					stripRef.current.style.transition = 'none';
+					stripRef.current.style.transform = `translate3d(${startOffset}px, 0, 0)`;
+					// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+					stripRef.current.offsetHeight;
+					
+					stripRef.current.style.willChange = 'transform';
+					stripRef.current.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+					stripRef.current.style.transform = `translate3d(${finalPosition}px, 0, 0)`;
+					
+					timeoutId = setTimeout(() => {
+						if (stripRef.current) {
+							stripRef.current.style.transition = 'none';
+							stripRef.current.style.transform = 'translate3d(0,0,0)';
+						}
+						finishSpin(wonItem);
+					}, 4000);
+				}
+			} else {
+				// Use middle section index
+				const targetIndex = middleStart + relativeIndex;
+				const finalPosition = -(targetIndex * itemWidth - containerWidth / 2 + itemWidth / 2);
+				
+				// Animate to position
+				if (stripRef.current) {
+					const startOffset = Math.random() * itemWidth * 2;
+					stripRef.current.style.transition = 'none';
+					stripRef.current.style.transform = `translate3d(${startOffset}px, 0, 0)`;
+					// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+					stripRef.current.offsetHeight;
+					
+					stripRef.current.style.willChange = 'transform';
+					stripRef.current.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+					stripRef.current.style.transform = `translate3d(${finalPosition}px, 0, 0)`;
+					
+					timeoutId = setTimeout(() => {
+						if (stripRef.current) {
+							stripRef.current.style.transition = 'none';
+							stripRef.current.style.transform = 'translate3d(0,0,0)';
+						}
+						finishSpin(wonItem);
+					}, 4000);
+				}
+			}
 
-			return () => clearTimeout(timeoutId);
+			return () => {
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+				}
+			};
 		}
 	}, [externalSpinning, wonItem, items, extendedItems, itemWidth, containerWidth, finishSpin]);
+
+	// Helper function to select item based on probability
+	const selectItemByProbability = useCallback((items: ItemDto[] | CaseItemWithWeight[]): ItemDto => {
+		if (hasWeights(items)) {
+			// Weighted random selection
+			const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+			let random = Math.random() * totalWeight;
+			
+			for (const itemData of items) {
+				random -= itemData.weight;
+				if (random <= 0) {
+					return itemData.item;
+				}
+			}
+			// Fallback (should never happen)
+			return items[0].item;
+		} else {
+			// Simple random selection for ItemDto[]
+			return items[Math.floor(Math.random() * items.length)] as ItemDto;
+		}
+	}, []);
 
 	const handleDemoSpin = useCallback(() => {
 		if (isAnimating || disabled || items.length === 0) return;
@@ -132,12 +239,17 @@ export const RouletteStrip = ({
 		setIsAnimating(true);
 		setSpinResult(null);
 
-		const resultIndex = Math.floor(Math.random() * items.length);
-		const result = items[resultIndex];
+		// Select result based on probability if weights are available
+		const result = selectItemByProbability(items);
 
-		// Choose a central target within the extended array
-		const middleIndex = Math.floor(extendedItems.length / 2);
-		const targetIndex = middleIndex + resultIndex;
+		// Find a matching item in the middle section of extendedItems
+		const middleStart = Math.floor(extendedItems.length / 3);
+		const middleEnd = Math.floor((extendedItems.length * 2) / 3);
+		const middleSection = extendedItems.slice(middleStart, middleEnd);
+		
+		// Find index of a matching item in the middle section
+		const relativeIndex = middleSection.findIndex(item => item.id === result.id);
+		const targetIndex = relativeIndex !== -1 ? middleStart + relativeIndex : middleStart;
 
 		const finalPosition = -(targetIndex * itemWidth - containerWidth / 2 + itemWidth / 2);
 
@@ -153,6 +265,15 @@ export const RouletteStrip = ({
 		}
 
 		if (!stripRef.current) return;
+
+		// Reset position to start for consistent animation
+		const startOffset = Math.random() * itemWidth * 2;
+		stripRef.current.style.transition = 'none';
+		stripRef.current.style.transform = `translate3d(${startOffset}px, 0, 0)`;
+		
+		// Force reflow to apply the reset
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		stripRef.current.offsetHeight;
 
 		// Remove any previous transitionend listener
 		animationCleanupRef.current();
@@ -192,10 +313,11 @@ export const RouletteStrip = ({
 
 		// Set transition & translate
 		// Use translate 3d and will-change for GPU acceleration
+		// cubic-bezier для плавного естественного замедления
 		stripRef.current.style.willChange = 'transform';
-		stripRef.current.style.transition = 'transform 3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+		stripRef.current.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
 		stripRef.current.style.transform = `translate3d(${finalPosition}px, 0, 0)`;
-	}, [isAnimating, disabled, items, extendedItems, itemWidth, containerWidth, finishSpin, prefersReducedMotion]);
+	}, [isAnimating, disabled, items, extendedItems, itemWidth, containerWidth, finishSpin, prefersReducedMotion, selectItemByProbability]);
 
 	// Accessibility: announce result to screen readers
 	// A small offscreen live region

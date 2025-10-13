@@ -35,14 +35,34 @@ export interface CaseDetailsDto {
     itemCount: number;
 }
 
+export interface RollDetails {
+    probability: number;
+    weight: number;
+    totalWeight: number;
+    timestamp: string;
+}
+
+export interface CaseInfo {
+    id: string;
+    name: string;
+    price: number;
+}
+
 export interface OpenCaseResultDto {
-    result: {
+    inventoryItem: {
+        id: string;
+        userId: string;
         itemId: string;
-        name: string;
-        imageUrl: string | null;
-        price: number;
+        status: string;
+        receivedAt: string | null;
+        soldAt: string | null;
+        soldPrice: number | null;
+        createdAt: string;
+        updatedAt: string;
+        item: ItemDto;
     };
-    serverSeedHash: string;
+    caseInfo: CaseInfo;
+    rollDetails: RollDetails;
 }
 
 export interface CreateCaseDto {
