@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/store/authStore.ts";
+import { safeDecryptToken } from "@/lib/tokenEncryption.ts";
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
@@ -11,9 +12,14 @@ export const apiClient = axios.create({
 // Добавление accessToken к каждому запросу
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 	const authStore = useAuthStore.getState();
-	const token = authStore.accessToken;
-	if (token) {
-		config.headers.Authorization = `Bearer ${token}`;
+	const encryptedToken = authStore.accessToken;
+	
+	if (encryptedToken) {
+		// Расшифровываем токен перед отправкой
+		const decryptedToken = safeDecryptToken(encryptedToken);
+		if (decryptedToken) {
+			config.headers.Authorization = `Bearer ${decryptedToken}`;
+		}
 	}
 	return config;
 });

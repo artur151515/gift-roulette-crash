@@ -94,7 +94,6 @@ export const CaseDetailsPage = () => {
 	};
 
 	const handleRouletteResult = (result: ItemDto) => {
-		console.log('Roulette result:', result);
 		setIsSpinning(false);
 		setWonItem(null);
 		

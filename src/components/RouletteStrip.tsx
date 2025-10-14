@@ -148,7 +148,7 @@ export const RouletteStrip = ({
 				// If not found in middle, find anywhere in extended items
 				const anyIndex = extendedItems.findIndex(item => item.id === wonItem.id);
 				if (anyIndex === -1) {
-					console.error('Won item not found in strip:', wonItem);
+					// console.error('Won item not found in strip:', wonItem);
 					setIsAnimating(false);
 					return;
 				}
@@ -403,11 +403,11 @@ export const RouletteStrip = ({
 					</div>
 
 					{/* Spinning overlay */}
-					{isAnimating && (
-						<div className="absolute inset-0 bg-background/20 backdrop-blur-sm flex items-center justify-center z-20 pointer-events-none">
-							<div className="text-2xl animate-spin">🎰</div>
-						</div>
-					)}
+					{/*{isAnimating && (*/}
+					{/*	<div className="absolute inset-0 bg-background/20 backdrop-blur-sm flex items-center justify-center z-20 pointer-events-none">*/}
+					{/*		<div className="text-2xl animate-spin">🎰</div>*/}
+					{/*	</div>*/}
+					{/*)}*/}
 				</div>
 
 				{/* Grid background effect */}
@@ -447,7 +447,7 @@ export const RouletteStrip = ({
 							) : (
 								<div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">🎁</div>
 							)}
-							<div>
+							<div className="flex flex-col items-start gap-2">
 								<p className="font-semibold text-foreground">{spinResult.name}</p>
 								<Badge variant="outline" className="text-xs">
 									💎{spinResult.price}

@@ -55,7 +55,7 @@ const App = () => {
                         // если у тебя нет логина — можно показать кнопку Login Widget в UI
                     }
                 } catch (e) {
-                    console.warn("Telegram login attempt failed", e);
+                    // console.warn("Telegram login attempt failed", e);
                 }
             } finally {
                 setIsBootstrapping(false);

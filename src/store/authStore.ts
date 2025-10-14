@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { apiClient } from "@/api/apiClient.ts";
 import { TelegramUser } from "@/types/auth.ts";
 import { getCurrentUser } from "@/api/auth.ts";
+import { safeEncryptToken, safeDecryptToken, clearEncryptionData } from "@/lib/tokenEncryption.ts";
 
 interface AuthStore {
     user: TelegramUser | null;
@@ -28,9 +29,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     setUser: (user) => set({ user }),
 
-    setAccessToken: (token) => set({ accessToken: token }),
+    setAccessToken: (token) => {
+        // Шифруем токен перед сохранением в памяти
+        const encryptedToken = safeEncryptToken(token);
+        set({ accessToken: encryptedToken });
+    },
 
-    clearAuth: () => set({ accessToken: null, user: null }),
+    clearAuth: () => {
+        clearEncryptionData(); // Очищаем данные шифрования
+        set({ accessToken: null, user: null });
+    },
 
     // Попытка обновить accessToken через cookie (httponly refresh). Не передаём body.
     refresh: async () => {
@@ -42,9 +50,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
             if (!newAccess) throw new Error("No access token returned from refresh");
 
-            set({ accessToken: newAccess, user });
+            // Шифруем новый токен перед сохранением
+            const encryptedToken = safeEncryptToken(newAccess);
+            set({ accessToken: encryptedToken, user });
         } catch (err) {
             // При неудаче — полностью очистить стейт
+            clearEncryptionData();
             set({ accessToken: null, user: null });
             throw err;
         }
@@ -56,8 +67,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             await apiClient.post("/auth/logout"); // cookie будет удалено бекендом
         } catch (e) {
             // игнорируем ошибки при logout, но можно логировать
-            console.warn("Logout failed:", e);
+            // console.warn("Logout failed:", e);
         } finally {
+            clearEncryptionData(); // Очищаем данные шифрования
             set({ accessToken: null, user: null });
         }
     },
@@ -91,7 +103,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             const userData = await getCurrentUser();
             set({ user: userData });
         } catch (error) {
-            console.error('Failed to fetch current user:', error);
+            // console.error('Failed to fetch current user:', error);
             // Don't clear auth on fetch error, just log it
         }
     },
