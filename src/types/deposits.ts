@@ -14,3 +14,16 @@ export type CreateInvoiceResponse = {
     amount: number;
     expiresAt: string;
 };
+
+export type CreateInvoiceDto = {
+    amount: number;
+};
+
+export type DepositPackage = {
+    id: string;
+    stars: number;
+    gems: number;
+    bonus?: number;
+    popular?: boolean;
+    bestValue?: boolean;
+};

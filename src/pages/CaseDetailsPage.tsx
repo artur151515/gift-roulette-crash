@@ -116,7 +116,7 @@ export const CaseDetailsPage = () => {
 	}, [caseDetails, user, isSpinning, openCaseMutation]);
 
 	const handleRouletteResult = useCallback((result: ItemDto) => {
-		console.log('Roulette result:', result);
+		// Roulette result logged
 		setIsSpinning(false);
 
 		// Показываем toast после завершения анимации

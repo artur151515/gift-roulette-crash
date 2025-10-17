@@ -1,12 +1,12 @@
-import {apiClient} from "./apiClient.ts";
-import { CreateInvoiceResponse, DepositStatus } from "@/types/deposits.ts";
+import { apiClient } from "./apiClient.ts";
+import { CreateInvoiceResponse, DepositStatus, CreateInvoiceDto } from "@/types/deposits.ts";
 
 export const createInvoice = async (
-    amount: number
+    payload: CreateInvoiceDto
 ): Promise<CreateInvoiceResponse> => {
     const { data } = await apiClient.post<CreateInvoiceResponse>(
         "/deposits/create-invoice",
-        { amount }
+        payload
     );
     return data;
 };

@@ -67,12 +67,15 @@ apiClient.interceptors.response.use(
 
 			try {
 				await useAuthStore.getState().refresh();
-				const newToken = useAuthStore.getState().accessToken;
+				const encryptedToken = useAuthStore.getState().accessToken;
+				
+				// Расшифровываем токен перед использованием
+				const decryptedToken = safeDecryptToken(encryptedToken);
 
-				processQueue(null, newToken);
+				processQueue(null, decryptedToken);
 
-				if (newToken && originalRequest.headers) {
-					originalRequest.headers.Authorization = `Bearer ${newToken}`;
+				if (decryptedToken && originalRequest.headers) {
+					originalRequest.headers.Authorization = `Bearer ${decryptedToken}`;
 				}
 
 				return apiClient(originalRequest);

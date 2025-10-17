@@ -53,23 +53,27 @@ class TelegramService {
 
 	// Haptic feedback
 	impactOccurred(style: 'light' | 'medium' | 'heavy' = 'medium') {
-		if (this.webApp && 'HapticFeedback' in this.webApp) {
-			// @ts-ignore - Telegram WebApp types might not include HapticFeedback
-			this.webApp.HapticFeedback?.impactOccurred(style);
+		if (this.webApp?.HapticFeedback) {
+			this.webApp.HapticFeedback.impactOccurred(style);
 		}
 	}
 
 	notificationOccurred(type: 'error' | 'success' | 'warning') {
-		if (this.webApp && 'HapticFeedback' in this.webApp) {
-			// @ts-ignore
-			this.webApp.HapticFeedback?.notificationOccurred(type);
+		if (this.webApp?.HapticFeedback) {
+			this.webApp.HapticFeedback.notificationOccurred(type);
 		}
 	}
 
 	selectionChanged() {
-		if (this.webApp && 'HapticFeedback' in this.webApp) {
-			// @ts-ignore
-			this.webApp.HapticFeedback?.selectionChanged();
+		if (this.webApp?.HapticFeedback) {
+			this.webApp.HapticFeedback.selectionChanged();
+		}
+	}
+
+	// Payment
+	openInvoice(url: string, callback?: (status: string) => void) {
+		if (this.webApp) {
+			this.webApp.openInvoice(url, callback);
 		}
 	}
 }

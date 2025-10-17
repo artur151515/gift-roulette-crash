@@ -45,9 +45,8 @@ export const encryptToken = (token: string): string => {
         return encrypted;
     } catch (error) {
         console.error('Token encryption failed:', error);
-        // В случае ошибки возвращаем оригинальный токен
-        // (не рекомендуется для продакшена, но лучше чем краш)
-        return token;
+        // В продакшене не возвращаем оригинальный токен из соображений безопасности
+        throw new Error('Failed to encrypt token');
     }
 };
 

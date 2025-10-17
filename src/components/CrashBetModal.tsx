@@ -41,7 +41,7 @@ export const CrashBetModal = () => {
 
 		// Place bet and update balance
 		placeBet(amount, selectedCurrency);
-		updateBalance(user.balance - amount);
+		updateBalance(-amount);
 
 		toast({
 			title: "Ставка принята!",

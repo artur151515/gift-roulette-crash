@@ -99,6 +99,12 @@ export interface TelegramWebApp {
 	isExpanded: boolean;
 	viewportHeight: number;
 	viewportStableHeight: number;
+	openInvoice(url: string, callback?: (status: string) => void): void;
+	HapticFeedback?: {
+		impactOccurred(style: 'light' | 'medium' | 'heavy'): void;
+		notificationOccurred(type: 'error' | 'success' | 'warning'): void;
+		selectionChanged(): void;
+	};
 }
 
 // declare global {
