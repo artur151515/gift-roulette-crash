@@ -7,204 +7,204 @@
 /* Telegram Mini App Design System - Dark Theme */
 
 @layer base {
-  :root {
-    /* Telegram Dark Theme Colors */
-    --background: 215 25% 7%; /* #0b0f14 */
-    --foreground: 0 0% 100%;
-    
-    --card: 220 20% 16%;
-    --card-foreground: 0 0% 100%;
-    
-    --popover: 220 20% 16%;
-    --popover-foreground: 0 0% 100%;
-    
-    --primary: 207 89% 54%; /* Telegram Blue */
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 207 89% 64%;
-    
-    --secondary: 220 15% 24%;
-    --secondary-foreground: 0 0% 90%;
-    
-    --muted: 220 15% 24%;
-    --muted-foreground: 0 0% 65%;
-    
-    --accent: 207 89% 54%;
-    --accent-foreground: 0 0% 100%;
-    
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 220 20% 25%;
-    --input: 220 20% 25%;
-    --ring: 207 89% 54%;
-    
-    /* Success/Green for gains */
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-    
-    /* Warning/Orange for multipliers */
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    
-    --radius: 16px;
-    
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(220 25% 18%));
-    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(142 71% 55%));
-    
-    /* Shadows */
-    --shadow-glow: 0 0 20px hsl(var(--primary) / 0.3);
-    --shadow-card: 0 4px 12px hsl(0 0% 0% / 0.15);
-    --shadow-elevated: 0 8px 24px hsl(0 0% 0% / 0.25);
-    
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  }
+    :root {
+        /* Telegram Dark Theme Colors */
+        --background: 215 25% 7%; /* #0b0f14 */
+        --foreground: 0 0% 100%;
+
+        --card: 220 20% 16%;
+        --card-foreground: 0 0% 100%;
+
+        --popover: 220 20% 16%;
+        --popover-foreground: 0 0% 100%;
+
+        --primary: 207 89% 54%; /* Telegram Blue */
+        --primary-foreground: 0 0% 100%;
+        --primary-glow: 207 89% 64%;
+
+        --secondary: 220 15% 24%;
+        --secondary-foreground: 0 0% 90%;
+
+        --muted: 220 15% 24%;
+        --muted-foreground: 0 0% 65%;
+
+        --accent: 207 89% 54%;
+        --accent-foreground: 0 0% 100%;
+
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 220 20% 25%;
+        --input: 220 20% 25%;
+        --ring: 207 89% 54%;
+
+        /* Success/Green for gains */
+        --success: 142 71% 45%;
+        --success-foreground: 0 0% 100%;
+
+        /* Warning/Orange for multipliers */
+        --warning: 38 92% 50%;
+        --warning-foreground: 0 0% 100%;
+
+        --radius: 16px;
+
+        /* Gradients */
+        --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+        --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(220 25% 18%));
+        --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(142 71% 55%));
+
+        /* Shadows */
+        --shadow-glow: 0 0 20px hsl(var(--primary) / 0.3);
+        --shadow-card: 0 4px 12px hsl(0 0% 0% / 0.15);
+        --shadow-elevated: 0 8px 24px hsl(0 0% 0% / 0.25);
+
+        /* Animations */
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  
-  html {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  }
+    * {
+        @apply border-border;
+    }
 
-  body {
-    @apply bg-background text-foreground antialiased;
-    /* Telegram Mini App viewport */
-    overscroll-behavior: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* Safe area support for iOS */
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top);
-  }
-  
-  .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 4px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 2px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground));
-  }
+    html {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+        @apply bg-background text-foreground antialiased;
+        /* Telegram Mini App viewport */
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Safe area support for iOS */
+    .safe-area-top {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: hsl(var(--muted));
+        border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: hsl(var(--muted-foreground));
+    }
 }
 
 @layer components {
-  /* Button variants */
-  .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg;
-    background: var(--gradient-primary);
-  }
-  
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
-  }
-  
-  .btn-ghost {
-    @apply bg-transparent hover:bg-muted/50 text-foreground;
-  }
-  
-  /* Card variants */
-  .card-elevated {
-    background: var(--gradient-card);
-    box-shadow: var(--shadow-card);
-  }
-  
-  .card-glow {
-    box-shadow: var(--shadow-glow);
-  }
-  
-  /* Text gradients */
-  .text-gradient-primary {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  /* Animations */
-  .animate-glow {
-    animation: glow 2s ease-in-out infinite alternate;
-  }
-  
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  .animate-pulse-glow {
-    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
+    /* Button variants */
+    .btn-primary {
+        @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg;
+        background: var(--gradient-primary);
+    }
+
+    .btn-secondary {
+        @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+    }
+
+    .btn-ghost {
+        @apply bg-transparent hover:bg-muted/50 text-foreground;
+    }
+
+    /* Card variants */
+    .card-elevated {
+        background: var(--gradient-card);
+        box-shadow: var(--shadow-card);
+    }
+
+    .card-glow {
+        box-shadow: var(--shadow-glow);
+    }
+
+    /* Text gradients */
+    .text-gradient-primary {
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Animations */
+    .animate-glow {
+        animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    .animate-float {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .animate-pulse-glow {
+        animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
 }
 
 @layer utilities {
-  .text-shadow {
-    text-shadow: 0 2px 4px hsl(0 0% 0% / 0.3);
-  }
-  
-  .backdrop-blur-glass {
-    backdrop-filter: blur(12px);
-    background: hsl(var(--background) / 0.8);
-  }
+    .text-shadow {
+        text-shadow: 0 2px 4px hsl(0 0% 0% / 0.3);
+    }
+
+    .backdrop-blur-glass {
+        backdrop-filter: blur(12px);
+        background: hsl(var(--background) / 0.8);
+    }
 }
 
 @keyframes glow {
-  from {
-    box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
-  }
-  to {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.8);
-  }
+    from {
+        box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+    }
+    to {
+        box-shadow: 0 0 20px hsl(var(--primary) / 0.8);
+    }
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 15px hsl(var(--primary) / 0.4);
-  }
-  50% {
-    opacity: 0.8;
-    box-shadow: 0 0 25px hsl(var(--primary) / 0.6);
-  }
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 15px hsl(var(--primary) / 0.4);
+    }
+    50% {
+        opacity: 0.8;
+        box-shadow: 0 0 25px hsl(var(--primary) / 0.6);
+    }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+    * {
+        @apply border-border;
+    }
 
-  body {
-    @apply bg-background text-foreground;
-  }
+    body {
+        @apply bg-background text-foreground;
+    }
 }
 
 * {
-  user-select: none;
+    user-select: none;
 }

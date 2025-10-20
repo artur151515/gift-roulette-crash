@@ -85,7 +85,7 @@ apiClient.interceptors.response.use(
 				window.dispatchEvent(new CustomEvent("auth:force-logout"));
 				return Promise.reject(refreshErr);
 			} finally {
-				isRefreshing = false;
+				isRefreshing = false;	
 			}
 		}
 
