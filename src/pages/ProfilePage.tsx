@@ -31,18 +31,6 @@ export const ProfilePage = () => {
         });
     };
 
-    // const handleDepositGifts = () => {
-    //     telegramService.impactOccurred('light');
-    // };
-    //
-    // const handleDepositTON = () => {
-    //     telegramService.impactOccurred('light');
-    //     toast({
-    //         title: "Пополнение TON",
-    //         description: "Функция будет доступна в ближайшее время",
-    //     });
-    // };
-
     const {accessToken} = useAuthStore();
     // const initData = window.Telegram?.WebApp?.initData;
 
