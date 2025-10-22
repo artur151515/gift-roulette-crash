@@ -1,9 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/authStore';
-import telegramService from '@/lib/telegram';
 import ProfileHeader from "@/components/Profile/ProfileHeader.tsx";
-import ReferralSystem from "@/components/Profile/ReferralSystem.tsx";
 import {Inventory} from "@/components/Profile/inventory";
 
 export const ProfilePage = () => {
@@ -19,20 +16,6 @@ export const ProfilePage = () => {
     const displayId = user?.telegramId ? parseInt(user.telegramId) : (tgUser?.id as number);
     const balance = user?.balance ?? 0;
     const avatar = user?.photoUrl ?? (tgUser?.photo_url as string);
-
-    const referralLink = `${import.meta.env.VITE_BOT_URL}${displayId ?? '0'}`;
-
-    const handleCopyReferralLink = () => {
-        navigator.clipboard.writeText(referralLink);
-        telegramService.notificationOccurred('success');
-        toast({
-            title: "Ссылка скопирована!",
-            description: "Реферальная ссылка скопирована в буфер обмена",
-        });
-    };
-
-    const {accessToken} = useAuthStore();
-    // const initData = window.Telegram?.WebApp?.initData;
 
     if (!tgUser && !user) {
         return (
@@ -58,9 +41,7 @@ export const ProfilePage = () => {
                     balance={balance}
                     avatar={avatar}
                 />
-                {/*{accessToken}*/}
                 <Inventory />
-                <ReferralSystem referralLink={referralLink} onCopyReferralLink={handleCopyReferralLink} />
             </div>
         </div>
     );
