@@ -17,6 +17,9 @@ export const ProfilePage = () => {
     const balance = user?.balance ?? 0;
     const avatar = user?.photoUrl ?? (tgUser?.photo_url as string);
 
+	// const {accessToken} = useAuthStore();
+	// const initData = window.Telegram?.WebApp?.initData;
+
     if (!tgUser && !user) {
         return (
             <div className="flex-1 pb-20 p-4">
@@ -41,6 +44,7 @@ export const ProfilePage = () => {
                     balance={balance}
                     avatar={avatar}
                 />
+				{/*{accessToken}*/}
                 <Inventory />
             </div>
         </div>

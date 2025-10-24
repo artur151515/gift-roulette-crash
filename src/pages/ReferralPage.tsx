@@ -1,19 +1,49 @@
+import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/authStore';
 import telegramService from '@/lib/telegram';
 import ReferralSystem from "@/components/Profile/ReferralSystem.tsx";
+import { ReferralList } from "@/components/Referral/ReferralList.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getReferralLink, getMyReferrals } from '@/api/referral';
+import { ReferralUser, ReferralLinkResponse } from '@/types/referral';
 
 export const ReferralPage = () => {
     const { user } = useAuthStore();
+    const [referralLink, setReferralLink] = useState<string>('');
+    const [referrals, setReferrals] = useState<ReferralUser[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [referralsLoading, setReferralsLoading] = useState(true);
 
     const tg = (window as { Telegram?: { WebApp?: { initDataUnsafe?: { user?: Record<string, unknown> } } } })?.Telegram?.WebApp;
     const tgUser = tg?.initDataUnsafe?.user;
 
-    const displayId = user?.telegramId ? parseInt(user.telegramId) : (tgUser?.id as number);
+    useEffect(() => {
+        const fetchReferralData = async () => {
+            try {
+                // Получаем реферальную ссылку
+                const linkResponse = await getReferralLink();
+                setReferralLink(linkResponse.referralLink);
+                
+                // Получаем список рефералов
+                const referralsResponse = await getMyReferrals();
+                setReferrals(referralsResponse.referrals);
+            } catch (error) {
+                console.error('Error fetching referral data:', error);
+                toast({
+                    title: "Ошибка",
+                    description: "Не удалось загрузить данные реферальной системы",
+                    variant: "destructive",
+                });
+            } finally {
+                setIsLoading(false);
+                setReferralsLoading(false);
+            }
+        };
 
-    const referralLink = `${import.meta.env.VITE_BOT_URL}${displayId ?? '0'}`;
+        fetchReferralData();
+    }, []);
 
     const handleCopyReferralLink = () => {
         navigator.clipboard.writeText(referralLink);
@@ -29,6 +59,18 @@ export const ReferralPage = () => {
             <div className="flex-1 pb-20 p-4">
                 <div className="space-y-6">
                     <Skeleton className="h-32 rounded-xl" />
+                    <Skeleton className="h-40 rounded-lg" />
+                </div>
+            </div>
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex-1 pb-20 p-4">
+                <div className="space-y-6">
+                    <Skeleton className="h-32 rounded-xl" />
+                    <Skeleton className="h-40 rounded-lg" />
                     <Skeleton className="h-40 rounded-lg" />
                 </div>
             </div>
@@ -94,7 +136,7 @@ export const ReferralPage = () => {
                     </CardContent>
                 </Card>
 
-                {/* Stats Card (placeholder for future implementation) */}
+                {/* Stats Card */}
                 <Card className="card-elevated">
                     <CardHeader>
                         <CardTitle>Ваша статистика</CardTitle>
@@ -102,7 +144,7 @@ export const ReferralPage = () => {
                     <CardContent>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-muted/20 rounded-lg p-4 text-center">
-                                <p className="text-2xl font-bold">0</p>
+                                <p className="text-2xl font-bold">{referrals.length}</p>
                                 <p className="text-sm text-muted-foreground">Рефералов</p>
                             </div>
                             <div className="bg-muted/20 rounded-lg p-4 text-center">
@@ -112,6 +154,9 @@ export const ReferralPage = () => {
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Referrals List */}
+                <ReferralList referrals={referrals} isLoading={referralsLoading} />
             </div>
         </div>
     );
