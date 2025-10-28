@@ -26,7 +26,7 @@ build:dev:
   only:
     - main
     - develop
-    - feat/*
+    - feat/auth
 
 deploy:dev:
   stage: deploy
@@ -39,6 +39,6 @@ deploy:dev:
   only:
     - main
     - develop
-    - feat/*
+    - feat/auth
   when: manual
 
