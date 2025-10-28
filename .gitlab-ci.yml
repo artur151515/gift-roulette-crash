@@ -1,0 +1,44 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  CI_REGISTRY_IMAGE: registry.thesecretgift.site/root/gift-roulette-crash
+
+build:dev:
+  stage: build
+  tags:
+    - docker
+  image: docker:25
+  services:
+    - docker:25-dind
+  before_script:
+    - echo "Logging to GitLab registry..."
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - echo "Building Docker image for frontend..."
+    - docker build -t $CI_REGISTRY_IMAGE:dev -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
+    - echo "Pushing Docker image to registry..."
+    - docker push $CI_REGISTRY_IMAGE:dev
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  only:
+    - main
+    - develop
+    - feat/*
+
+deploy:dev:
+  stage: deploy
+  tags:
+    - docker
+  image: alpine:latest
+  script:
+    - echo "To deploy to dev environment, run on server:"
+    - echo "cd /opt/gift/dev && docker compose pull frontend && docker compose up -d frontend"
+  only:
+    - main
+    - develop
+    - feat/*
+  when: manual
+
