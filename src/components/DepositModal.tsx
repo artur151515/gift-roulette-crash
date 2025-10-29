@@ -175,8 +175,8 @@ export const DepositModal = () => {
 
 	return (
 		<Dialog open={isDepositModalOpen} onOpenChange={closeDepositModal}>
-			<DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto rounded-xl">
-				<DialogHeader>
+			<DialogContent className="max-w-[95%] mx-auto max-h-[90vh] overflow-y-auto rounded-xl">
+				<DialogHeader className="flex items-center">
 					<DialogTitle className="text-2xl font-bold flex items-center gap-2">
 						<Sparkles className="h-6 w-6 text-primary" />
 						Пополнить баланс

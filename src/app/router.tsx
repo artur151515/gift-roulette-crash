@@ -13,7 +13,7 @@ export const AppRouter = () => {
 				<Route index element={<Navigate to="/cases" replace />} />
 				<Route path="cases" element={<CasesPage />} />
 				<Route path="cases/:id" element={<CaseDetailsPage />} />
-				<Route path="crash" element={<CrashPage />} />
+				{/*<Route path="crash" element={<CrashPage />} />*/}
 				<Route path="referral" element={<ReferralPage />} />
 				<Route path="profile" element={<ProfilePage />} />
 				<Route path="*" element={<Navigate to="/cases" replace />} />

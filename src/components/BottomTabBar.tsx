@@ -11,12 +11,12 @@ const tabs = [
 		icon: Package,
 		path: '/cases',
 	},
-	{
-		id: 'crash',
-		label: 'Crash',
-		icon: TrendingUp,
-		path: '/crash',
-	},
+	// {
+	// 	id: 'crash',
+	// 	label: 'Crash',
+	// 	icon: TrendingUp,
+	// 	path: '/crash',
+	// },
 	{
 		id: 'referral',
 		label: 'Referral',
@@ -51,25 +51,24 @@ export const BottomTabBar = () => {
 					return (
 						<Button
 							key={tab.id}
-							variant="ghost"
+							variant="default"
 							onClick={() => handleTabClick(tab.path)}
 							className={cn(
-								"flex flex-col items-center gap-1 h-auto py-2 px-3 text-xs font-medium transition-colors",
+								"flex flex-col items-center gap-1 h-auto py-2 px-3 text-xs font-medium transition-colors bg-transparent hover:bg-transparent",
 								isActive
 									? "text-primary"
 									: "text-muted-foreground hover:text-foreground"
 							)}
 						>
 							<Icon className={cn(
-								"h-5 w-5 transition-all",
+								"h-5 w-5",
 								isActive && "text-primary"
 							)} />
 							<span className={cn(
-								"transition-colors",
 								isActive && "text-primary"
 							)}>
-                {tab.label}
-              </span>
+								{tab.label}
+						  	</span>
 						</Button>
 					);
 				})}

@@ -5,7 +5,7 @@ import {Copy} from "lucide-react";
 const ReferralSystem: React.FC<{ referralLink: string; onCopyReferralLink: () => void }> = ({ referralLink, onCopyReferralLink }) => (
     <Card className="card-elevated">
         <CardHeader>
-            <CardTitle>Зарабатывайте 10% от депозитов ваших друзей</CardTitle>
+            <CardTitle>Зарабатывайте от депозитов ваших друзей</CardTitle>
         </CardHeader>
         <CardContent className="p-6 pt-0 space-y-4">
             {/*<p className="text-muted-foreground text-sm">Приглашайте друзей и получайте 10% от их депозитов в виде бонуса!</p>*/}
@@ -17,7 +17,7 @@ const ReferralSystem: React.FC<{ referralLink: string; onCopyReferralLink: () =>
             </div>
             <div className="bg-muted/20 rounded-lg p-3 text-center">
                 <p className="text-sm text-muted-foreground">Условия</p>
-                <p className="text-xs text-muted-foreground mt-1">Получайте 10% от каждого депозита ваших рефералов</p>
+                <p className="text-xs text-muted-foreground mt-1">Пригласите друзей в бота и получайте 10% от суммы каждого их пополнения на свой счет</p>
             </div>
         </CardContent>
     </Card>

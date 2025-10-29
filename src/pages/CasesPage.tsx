@@ -45,7 +45,7 @@ export const CasesPage = () => {
     return (
         <div className="flex-1 pb-20">
             <div className="p-4">
-                <h1 className="text-2xl font-bold text-foreground mb-6">Кейсы</h1>
+                <h1 className="text-3xl font-bold text-foreground mb-6">Кейсы</h1>
                 
                 {cases.length > 0 ? (
                     <div className="grid grid-cols-2 gap-4">

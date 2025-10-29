@@ -19,15 +19,15 @@ export const TopBar = () => {
 	};
 
 	return (
-		<header className="flex items-center justify-between p-4 safe-area-top bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-50">
-			<Button
-				variant="ghost"
-				size="sm"
-				onClick={handleClose}
-				className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-			>
-				<X className="h-5 w-5" />
-			</Button>
+		<header className="flex items-center justify-end p-4 safe-area-top bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-50">
+			{/*<Button*/}
+			{/*	variant="ghost"*/}
+			{/*	size="sm"*/}
+			{/*	onClick={handleClose}*/}
+			{/*	className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"*/}
+			{/*>*/}
+			{/*	<X className="h-5 w-5" />*/}
+			{/*</Button>*/}
 
 			<div className="flex items-center gap-3">
 				<BalanceChip
