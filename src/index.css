@@ -208,3 +208,13 @@
 * {
     user-select: none;
 }
+
+/* Hide scrollbar for gifts feed */
+.overflow-x-auto::-webkit-scrollbar {
+    display: none;
+}
+
+.overflow-x-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import telegramService from '@/lib/telegram';
 import { getCaseDetails, openCase } from '@/api/cases';
 import { useAuthStore } from '@/store/authStore';
+import { useGiftsFeedStore } from '@/store/giftsFeedStore';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { useState, useCallback, useEffect } from 'react';
@@ -18,6 +19,7 @@ export const CaseDetailsPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const { user, updateBalance, fetchCurrentUser } = useAuthStore();
+	const { setAllItems, setUserWonItem, clearUserWonItem } = useGiftsFeedStore();
 	const queryClient = useQueryClient();
 	const [isSpinning, setIsSpinning] = useState(false);
 	const [wonItem, setWonItem] = useState<ItemDto | null>(null);
@@ -37,6 +39,14 @@ export const CaseDetailsPage = () => {
 		queryFn: () => getCaseDetails(id!),
 		enabled: !!id,
 	});
+
+	// Обновление списка всех подарков для ленты при загрузке кейса
+	useEffect(() => {
+		if (caseDetails && caseDetails.items) {
+			const allItemsForFeed = caseDetails.items.map(itemData => itemData.item);
+			setAllItems(allItemsForFeed);
+		}
+	}, [caseDetails, setAllItems]);
 
 	const openCaseMutation = useMutation({
 		mutationFn: () => openCase(id!),
@@ -119,6 +129,14 @@ export const CaseDetailsPage = () => {
 		// Roulette result logged
 		setIsSpinning(false);
 
+		// Добавляем выбитый подарок в ленту после завершения анимации
+		setUserWonItem(result);
+		
+		// Очищаем через 10 секунд для следующего выигрыша
+		setTimeout(() => {
+			clearUserWonItem();
+		}, 10000);
+
 		// Показываем toast после завершения анимации
 		if (rollResult) {
 			toast({
@@ -132,7 +150,7 @@ export const CaseDetailsPage = () => {
 			setWonItem(null);
 			setRollResult(null);
 		}, 100);
-	}, [rollResult]);
+	}, [rollResult, setUserWonItem, clearUserWonItem]);
 
 	const canAfford = user && caseDetails && user.balance >= caseDetails.price;
 	const isButtonDisabled = !canAfford || openCaseMutation.isPending || isSpinning;
@@ -344,17 +362,21 @@ interface ItemsGridProps {
 	items: CaseItemWithWeight[];
 }
 
-const ItemsGrid = ({ items }: ItemsGridProps) => (
-	<div className="space-y-4">
-		<div className="flex items-center gap-2">
-			<h2 className="text-2xl font-bold text-foreground tracking-tight">
-				Что внутри?
-			</h2>
-			<span className="text-2xl">🎁</span>
-		</div>
+const ItemsGrid = ({ items }: ItemsGridProps) => {
+	// Сортируем подарки по цене (от дорогих к дешевым)
+	const sortedItems = [...items].sort((a, b) => b.item.price - a.item.price);
 
-		<div className="grid grid-cols-3 gap-3">
-			{items.map((itemData) => (
+	return (
+		<div className="space-y-4">
+			<div className="flex items-center gap-2">
+				<h2 className="text-2xl font-bold text-foreground tracking-tight">
+					Что внутри?
+				</h2>
+				<span className="text-2xl">🎁</span>
+			</div>
+
+			<div className="grid grid-cols-3 gap-3">
+				{sortedItems.map((itemData) => (
 				<div
 					key={itemData.item.id}
 					className="group relative p-3 rounded-xl border text-center space-y-2 bg-card/50 backdrop-blur-sm hover:bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:scale-105"
@@ -384,10 +406,11 @@ const ItemsGrid = ({ items }: ItemsGridProps) => (
 						</div>
 					</div>
 				</div>
-			))}
+				))}
+			</div>
 		</div>
-	</div>
-);
+	);
+};
 
 interface OpenCaseButtonProps {
 	onClick: () => void;
