@@ -26,7 +26,7 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
     useEffect(() => {
         const handleScroll = () => {
             const currentScrollY = window.scrollY || window.pageYOffset;
-            
+
             // Игнорируем очень маленькие изменения (менее 5px)
             if (Math.abs(currentScrollY - lastScrollY.current) < 5) {
                 return;
@@ -142,7 +142,7 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
         >
             <div
                 ref={containerRef}
-                className="flex gap-2 p-2 pb-0 overflow-x-auto scroll-smooth"
+                className="flex gap-2 p-2 pb-1 overflow-x-auto scroll-smooth"
                 style={{
                     scrollbarWidth: 'none',
                     msOverflowStyle: 'none',
@@ -154,8 +154,9 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
                         key={feedItem.id}
                         className={cn(
                             "flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden relative group",
-                            "bg-gradient-to-br from-primary/20 via-accent/20 to-primary/20",
-                            "border border-border/50 hover:border-primary/50 transition-all duration-300",
+                            "bg-gradient-to-br from-primary/30 via-accent/20 to-primary/20",
+                            // "border border-border/50 hover:border-primary/50 transition-all duration-300",
+                            "transition-all duration-300",
                             "hover:scale-110 hover:shadow-lg",
                             "animate-in fade-in slide-in-from-left-4",
                             "p-1.5",

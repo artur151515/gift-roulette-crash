@@ -5,6 +5,7 @@ import {
 	CaseDetailsDto,
 	OpenCaseResultDto
 } from "@/types/cases.ts";
+import { ItemDto } from "@/types/inventory.ts";
 
 export const getCases = async (
 	page?: number,
@@ -29,4 +30,38 @@ export const openCase = async (id: string): Promise<OpenCaseResultDto> => {
 export const createCase = async (data: CreateCaseDto) => {
 	const { data: response } = await apiClient.post('/api/cases', data);
 	return response;
+};
+
+// Получить все доступные подарки из всех кейсов
+export const getAllItems = async (): Promise<ItemDto[]> => {
+	try {
+		// Получаем все кейсы
+		const casesResponse = await getCases(1, 100); // Получаем до 100 кейсов
+		
+		// Собираем все уникальные подарки из всех кейсов
+		const allItemsMap = new Map<string, ItemDto>();
+		
+		// Загружаем детали каждого кейса и собираем подарки
+		const caseDetailsPromises = casesResponse.cases.map(caseItem => 
+			getCaseDetails(caseItem.id).catch(() => null)
+		);
+		
+		const allCaseDetails = await Promise.all(caseDetailsPromises);
+		
+		allCaseDetails.forEach(caseDetails => {
+			if (caseDetails && caseDetails.items) {
+				caseDetails.items.forEach(itemData => {
+					// Добавляем только уникальные подарки
+					if (!allItemsMap.has(itemData.item.id)) {
+						allItemsMap.set(itemData.item.id, itemData.item);
+					}
+				});
+			}
+		});
+		
+		return Array.from(allItemsMap.values());
+	} catch (error) {
+		console.error('Error loading all items:', error);
+		return [];
+	}
 };

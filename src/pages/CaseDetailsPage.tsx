@@ -19,7 +19,7 @@ export const CaseDetailsPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const { user, updateBalance, fetchCurrentUser } = useAuthStore();
-	const { setAllItems, setUserWonItem, clearUserWonItem } = useGiftsFeedStore();
+	const { setUserWonItem, clearUserWonItem } = useGiftsFeedStore();
 	const queryClient = useQueryClient();
 	const [isSpinning, setIsSpinning] = useState(false);
 	const [wonItem, setWonItem] = useState<ItemDto | null>(null);
@@ -39,14 +39,6 @@ export const CaseDetailsPage = () => {
 		queryFn: () => getCaseDetails(id!),
 		enabled: !!id,
 	});
-
-	// Обновление списка всех подарков для ленты при загрузке кейса
-	useEffect(() => {
-		if (caseDetails && caseDetails.items) {
-			const allItemsForFeed = caseDetails.items.map(itemData => itemData.item);
-			setAllItems(allItemsForFeed);
-		}
-	}, [caseDetails, setAllItems]);
 
 	const openCaseMutation = useMutation({
 		mutationFn: () => openCase(id!),
@@ -308,11 +300,11 @@ const Header = ({ onBack, isLoading, title, price }: HeaderProps) => (
 				)}
 			</div>
 
-			{!isLoading && price !== undefined && (
-				<Badge variant="outline" className="font-semibold px-3 py-1.5 bg-primary/10 border-primary/20 text-primary">
-					💎 {price}
-				</Badge>
-			)}
+			{/*{!isLoading && price !== undefined && (*/}
+			{/*	<Badge variant="outline" className="font-semibold px-3 py-1.5 bg-primary/10 border-primary/20 text-primary">*/}
+			{/*		💎 {price}*/}
+			{/*	</Badge>*/}
+			{/*)}*/}
 			{isLoading && <Skeleton className="h-8 w-20 rounded-full" />}
 		</div>
 	</div>
@@ -381,7 +373,8 @@ const ItemsGrid = ({ items }: ItemsGridProps) => {
 					key={itemData.item.id}
 					className="group relative p-3 rounded-xl border text-center space-y-2 bg-card/50 backdrop-blur-sm hover:bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:scale-105"
 				>
-					<div className="aspect-square w-full mx-auto rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors">
+					{/*<div className="aspect-square w-full mx-auto rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center overflow-hidden border border-border/50 group-hover:border-primary/30 transition-colors">*/}
+					<div className="aspect-square w-full mx-auto rounded-lg flex items-center justify-center overflow-hidden transition-colors">
 						{itemData.item.imageUrl ? (
 							<img
 								src={itemData.item.imageUrl}
