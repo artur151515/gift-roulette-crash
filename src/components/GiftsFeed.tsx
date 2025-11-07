@@ -15,38 +15,118 @@ interface GiftsFeedProps {
     onItemAppear?: (item: ItemDto) => void;
 }
 
+const VISIBILITY = {
+    MIN_DELTA: 16,     // игнорируем мелкие колебания
+    HIDE_AFTER: 80,    // нужно прокрутить вниз от якоря на 80px, чтобы скрыть
+    SHOW_AFTER: 40,    // нужно прокрутить вверх от якоря на 40px, чтобы показать (гистерезис)
+    NEAR_TOP: 64,      // всегда показываем около верха страницы
+    NEAR_BOTTOM: 64,   // всегда показываем около низа страницы
+    COOLDOWN_MS: 300,  // минимальная пауза между переключениями
+};
+
 export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) => {
     const [feedItems, setFeedItems] = useState<GiftFeedItem[]>([]);
     const [isVisible, setIsVisible] = useState(true);
+
+    const visibleRef = useRef(true);
+    useEffect(() => { visibleRef.current = isVisible; }, [isVisible]);
+
     const containerRef = useRef<HTMLDivElement>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const lastScrollY = useRef(0);
 
-    // Отслеживание направления скролла для скрытия/показа ленты
+    // --- НОВАЯ ЛОГИКА ВИДИМОСТИ ---
     useEffect(() => {
-        const handleScroll = () => {
-            const currentScrollY = window.scrollY || window.pageYOffset;
+        const scrollEl = document.scrollingElement || document.documentElement;
 
-            // Игнорируем очень маленькие изменения (менее 5px)
-            if (Math.abs(currentScrollY - lastScrollY.current) < 5) {
+        const state = {
+            lastY: (typeof window !== 'undefined' ? (window.scrollY || window.pageYOffset || 0) : 0),
+            anchorY: (typeof window !== 'undefined' ? (window.scrollY || window.pageYOffset || 0) : 0),
+            dir: 0 as -1 | 0 | 1, // -1 вверх, 1 вниз, 0 нет
+            lastToggleTs: 0,
+            ticking: false,
+            scrollEndTimer: null as number | null,
+        };
+
+        const setVisibleSafe = (v: boolean) => {
+            setIsVisible(prev => {
+                if (prev === v) return prev;
+                visibleRef.current = v;
+                return v;
+            });
+            state.lastToggleTs = performance.now();
+        };
+
+        const handleScrollRAF = () => {
+            const rawY = window.scrollY || window.pageYOffset || 0;
+            const maxY = Math.max(0, (scrollEl.scrollHeight - window.innerHeight));
+            const y = Math.max(0, Math.min(rawY, maxY)); // кламп от «пружинки» на iOS
+            const dy = y - state.lastY;
+
+            // Всегда показываем около верха/низа — убирает мерцание на «упоре»
+            const nearTop = y <= VISIBILITY.NEAR_TOP;
+            const nearBottom = (maxY - y) <= VISIBILITY.NEAR_BOTTOM;
+            if (nearTop || nearBottom) {
+                if (!visibleRef.current) setVisibleSafe(true);
+                state.anchorY = y;
+                state.lastY = y;
+                state.ticking = false;
                 return;
             }
 
-            // Показываем при скролле вверх, скрываем при скролле вниз
-            if (currentScrollY < lastScrollY.current) {
-                // Скролл вверх
-                setIsVisible(true);
-            } else if (currentScrollY > lastScrollY.current && currentScrollY > 10) {
-                // Скролл вниз (только если прошли больше 10px от начала)
-                setIsVisible(false);
+            // Игнор мелких дельт
+            if (Math.abs(dy) >= VISIBILITY.MIN_DELTA) {
+                const nowDir: -1 | 1 = dy > 0 ? 1 : -1;
+
+                // При смене направления — переякоримся
+                if (nowDir !== state.dir) {
+                    state.dir = nowDir;
+                    state.anchorY = y;
+                }
+
+                const now = performance.now();
+                const cooldownOk = (now - state.lastToggleTs) > VISIBILITY.COOLDOWN_MS;
+
+                if (state.dir === 1) {
+                    // Скроллим вниз — скрывать после порога
+                    if (y - state.anchorY > VISIBILITY.HIDE_AFTER && visibleRef.current && cooldownOk) {
+                        setVisibleSafe(false);
+                    }
+                } else if (state.dir === -1) {
+                    // Скроллим вверх — показывать после меньшего порога
+                    if (state.anchorY - y > VISIBILITY.SHOW_AFTER && !visibleRef.current && cooldownOk) {
+                        setVisibleSafe(true);
+                    }
+                }
             }
 
-            lastScrollY.current = currentScrollY;
+            state.lastY = y;
+            state.ticking = false;
         };
 
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+        const onScroll = () => {
+            if (!state.ticking) {
+                state.ticking = true;
+                requestAnimationFrame(handleScrollRAF);
+            }
+
+            // Детектор окончания скролла — мягкая коррекция вблизи краёв
+            if (state.scrollEndTimer) window.clearTimeout(state.scrollEndTimer);
+            state.scrollEndTimer = window.setTimeout(() => {
+                const y = window.scrollY || window.pageYOffset || 0;
+                const maxY = Math.max(0, (scrollEl.scrollHeight - window.innerHeight));
+                if (y <= VISIBILITY.NEAR_TOP || (maxY - y) <= VISIBILITY.NEAR_BOTTOM) {
+                    if (!visibleRef.current) setVisibleSafe(true);
+                }
+            }, 250);
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            if (state.scrollEndTimer) window.clearTimeout(state.scrollEndTimer);
+        };
     }, []);
+    // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 
     // Добавить случайный подарок в ленту
     const addRandomGift = () => {
@@ -62,18 +142,13 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
 
         setFeedItems(prev => {
             const updated = [newFeedItem, ...prev];
-            // Ограничиваем количество элементов в ленте
             return updated.slice(0, 20);
         });
 
         onItemAppear?.(randomItem);
 
-        // Плавная прокрутка к началу
         if (containerRef.current) {
-            containerRef.current.scrollTo({
-                left: 0,
-                behavior: 'smooth'
-            });
+            containerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
         }
     };
 
@@ -92,13 +167,9 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
                 return updated.slice(0, 20);
             });
 
-            // Прокрутка к началу
             setTimeout(() => {
                 if (containerRef.current) {
-                    containerRef.current.scrollTo({
-                        left: 0,
-                        behavior: 'smooth'
-                    });
+                    containerRef.current.scrollTo({ left: 0, behavior: 'smooth' });
                 }
             }, 100);
         }
@@ -107,16 +178,13 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
     // Запуск генерации случайных подарков
     useEffect(() => {
         const scheduleNext = () => {
-            // Случайный интервал от 15 до 120 секунд
-            const delay = Math.random() * (120000 - 15000) + 15000;
-
+            const delay = Math.random() * (120000 - 15000) + 15000; // 15–120 c
             timeoutRef.current = setTimeout(() => {
                 addRandomGift();
                 scheduleNext();
             }, delay);
         };
 
-        // Добавить первый подарок через 2 секунды
         const initialTimeout = setTimeout(() => {
             addRandomGift();
             scheduleNext();
@@ -128,17 +196,16 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
         };
     }, [items]);
 
-    if (feedItems.length === 0) {
-        return null;
-    }
+    if (feedItems.length === 0) return null;
 
     return (
         <div
             className={cn(
-                "w-full overflow-hidden",
-                "transition-all duration-300 ease-in-out",
-                isVisible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+                'w-full overflow-hidden',
+                'transition-all duration-300 ease-in-out',
+                isVisible ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
             )}
+            style={{ willChange: 'max-height, opacity' }}
         >
             <div
                 ref={containerRef}
@@ -153,19 +220,15 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
                     <div
                         key={feedItem.id}
                         className={cn(
-                            "flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden relative group",
-                            "bg-gradient-to-br from-primary/30 via-accent/20 to-primary/20",
-                            // "border border-border/50 hover:border-primary/50 transition-all duration-300",
-                            "transition-all duration-300",
-                            "hover:scale-110 hover:shadow-lg",
-                            "animate-in fade-in slide-in-from-left-4",
-                            "p-1.5",
-                            feedItem.username === 'Вы' && "ring-2 ring-primary/50"
+                            'flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden relative group',
+                            'bg-gradient-to-br from-primary/30 via-accent/20 to-primary/20',
+                            'transition-all duration-300',
+                            'hover:scale-110 hover:shadow-lg',
+                            'animate-in fade-in slide-in-from-left-4',
+                            'p-1.5',
+                            feedItem.username === 'Вы' && 'ring-2 ring-primary/50'
                         )}
-                        style={{
-                            animationDelay: `${index * 50}ms`,
-                            animationDuration: '500ms',
-                        }}
+                        style={{ animationDelay: `${index * 50}ms`, animationDuration: '500ms' }}
                     >
                         {feedItem.item.imageUrl ? (
                             <img
@@ -174,19 +237,9 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
                                 className="w-full h-full object-contain rounded-sm"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-lg">
-                                🎁
-                            </div>
+                            <div className="w-full h-full flex items-center justify-center text-lg">🎁</div>
                         )}
 
-                        {/*/!* Username overlay *!/*/}
-                        {/*<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">*/}
-                        {/*    <p className="text-[7px] text-white font-medium truncate text-center">*/}
-                        {/*        {feedItem.username}*/}
-                        {/*    </p>*/}
-                        {/*</div>*/}
-
-                        {/* "You" indicator */}
                         {feedItem.username === 'Вы' && (
                             <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-primary rounded-full animate-pulse" />
                         )}
