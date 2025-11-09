@@ -7,6 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AppRouter } from "./app/router";
 import { useAuthStore } from "@/store/authStore";
 import { loginWithTelegram } from "@/api/auth.ts";
+import {ErrorBoundary} from "@/components/ErrorBoundary.tsx";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -101,15 +102,17 @@ const App = () => {
 
     return (
         <StrictMode>
-            <QueryClientProvider client={queryClient}>
-                <TooltipProvider>
-                    <BrowserRouter>
-                        <AppRouter />
-                    </BrowserRouter>
-                    <Toaster />
-                    <Sonner />
-                </TooltipProvider>
-            </QueryClientProvider>
+            <ErrorBoundary>
+                <QueryClientProvider client={queryClient}>
+                    <TooltipProvider>
+                        <BrowserRouter>
+                            <AppRouter />
+                        </BrowserRouter>
+                        <Toaster />
+                        <Sonner />
+                    </TooltipProvider>
+                </QueryClientProvider>
+            </ErrorBoundary>
         </StrictMode>
     );
 };
