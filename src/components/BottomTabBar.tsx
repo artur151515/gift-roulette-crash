@@ -1,4 +1,4 @@
-import { Package, TrendingUp, User, Users } from 'lucide-react';
+import { Package, User, Users, Trophy } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -11,12 +11,12 @@ const tabs = [
 		icon: Package,
 		path: '/cases',
 	},
-	// {
-	// 	id: 'crash',
-	// 	label: 'Crash',
-	// 	icon: TrendingUp,
-	// 	path: '/crash',
-	// },
+	{
+		id: 'leaderboard',
+		label: 'Rating',
+		icon: Trophy,
+		path: '/leaderboard',
+	},
 	{
 		id: 'referral',
 		label: 'Referral',

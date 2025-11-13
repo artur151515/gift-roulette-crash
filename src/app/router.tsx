@@ -5,6 +5,7 @@ import { CaseDetailsPage } from '@/pages/CaseDetailsPage';
 import { CrashPage } from '@/pages/CrashPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { ReferralPage } from '@/pages/ReferralPage';
+import { LeaderboardPage } from '@/pages/LeaderboardPage';
 
 export const AppRouter = () => {
 	return (
@@ -13,7 +14,7 @@ export const AppRouter = () => {
 				<Route index element={<Navigate to="/cases" replace />} />
 				<Route path="cases" element={<CasesPage />} />
 				<Route path="cases/:id" element={<CaseDetailsPage />} />
-				{/*<Route path="crash" element={<CrashPage />} />*/}
+				<Route path="leaderboard" element={<LeaderboardPage />} />
 				<Route path="referral" element={<ReferralPage />} />
 				<Route path="profile" element={<ProfilePage />} />
 				<Route path="*" element={<Navigate to="/cases" replace />} />
