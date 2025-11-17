@@ -7,25 +7,25 @@ import telegramService from '@/lib/telegram';
 const tabs = [
 	{
 		id: 'cases',
-		label: 'Cases',
+		label: 'Кейсы',
 		icon: Package,
 		path: '/cases',
 	},
 	{
 		id: 'leaderboard',
-		label: 'Rating',
+		label: 'Лидеры',
 		icon: Trophy,
 		path: '/leaderboard',
 	},
 	{
 		id: 'referral',
-		label: 'Referral',
+		label: 'Рефералы',
 		icon: Users,
 		path: '/referral',
 	},
 	{
 		id: 'profile',
-		label: 'Profile',
+		label: 'Профиль',
 		icon: User,
 		path: '/profile',
 	},
