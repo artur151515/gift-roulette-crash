@@ -1,172 +1,467 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { CaseItem } from '@/types';
 import telegramService from '@/lib/telegram';
+import {ItemDto} from "@/types/inventory.ts";
+import {CaseItemWithWeight} from "@/types/cases.ts";
 
 interface RouletteStripProps {
-  items: CaseItem[];
-  onSpin?: (result: CaseItem) => void;
-  disabled?: boolean;
+	items: ItemDto[] | CaseItemWithWeight[];
+	onSpin?: (result: ItemDto) => void;
+	disabled?: boolean;
+	isSpinning?: boolean;
+	wonItem?: ItemDto | null;
+	itemWidth?: number;
+	visibleItems?: number;
+	height?: number;
 }
 
-const ITEM_WIDTH = 104; // Width of each item in pixels
-const VISIBLE_ITEMS = 7; // Number of visible items
-const CONTAINER_WIDTH = VISIBLE_ITEMS * ITEM_WIDTH;
+export const RouletteStrip = ({
+								  items,
+								  onSpin,
+								  disabled = false,
+								  isSpinning: externalSpinning = false,
+								  wonItem = null,
+								  itemWidth = 104,
+								  visibleItems = 7,
+								  height = 120,
+							  }: RouletteStripProps) => {
+	const [isAnimating, setIsAnimating] = useState(false); // when transform transition is running
+	const [spinResult, setSpinResult] = useState<ItemDto | null>(null);
+	const stripRef = useRef<HTMLDivElement | null>(null);
+	const containerRef = useRef<HTMLDivElement | null>(null);
+	const animationCleanupRef = useRef<() => void>(() => {});
+	const [containerWidth, setContainerWidth] = useState<number>(0);
 
-export const RouletteStrip = ({ items, onSpin, disabled = false }: RouletteStripProps) => {
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [spinResult, setSpinResult] = useState<CaseItem | null>(null);
-  const stripRef = useRef<HTMLDivElement>(null);
+	// Respect reduced-motion preference
+	const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia
+		? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+		: false;
 
-  // Create extended items array for smooth scrolling
-  const extendedItems = [...items, ...items, ...items, ...items, ...items];
+	useEffect(() => {
+		// ResizeObserver to track container size (more reliable than window.resize)
+		const ro = new ResizeObserver(() => {
+			if (!containerRef.current) return;
+			const parentWidth = containerRef.current.parentElement?.clientWidth || window.innerWidth;
+			const maxWidth = itemWidth * visibleItems;
+			setContainerWidth(Math.min(parentWidth - 32, maxWidth)); // -32 for padding space
+		});
 
-  const handleDemoSpin = async () => {
-    if (isSpinning || disabled) return;
+		if (containerRef.current) ro.observe(containerRef.current);
 
-    telegramService.impactOccurred('medium');
-    setIsSpinning(true);
-    setSpinResult(null);
+		// initial run
+		if (containerRef.current) {
+			const parentWidth = containerRef.current.parentElement?.clientWidth || window.innerWidth;
+			const maxWidth = itemWidth * visibleItems;
+			setContainerWidth(Math.min(parentWidth - 32, maxWidth));
+		}
 
-    // Random result from original items
-    const resultIndex = Math.floor(Math.random() * items.length);
-    const result = items[resultIndex];
+		return () => ro.disconnect();
+	}, [itemWidth, visibleItems]);
 
-    // Calculate final position to center the winning item
-    const middleIndex = Math.floor(extendedItems.length / 2);
-    const targetIndex = middleIndex + resultIndex;
-    const finalPosition = -(targetIndex * ITEM_WIDTH - CONTAINER_WIDTH / 2 + ITEM_WIDTH / 2);
+	// Helper function to check if items have weights (CaseItemWithWeight[])
+	const hasWeights = (items: ItemDto[] | CaseItemWithWeight[]): items is CaseItemWithWeight[] => {
+		return items.length > 0 && 'weight' in items[0];
+	};
 
-    if (stripRef.current) {
-      stripRef.current.style.transform = `translateX(${finalPosition}px)`;
-      stripRef.current.style.transition = 'transform 3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    }
+	// Generate weighted strip based on probabilities
+	const generateWeightedStrip = useCallback((itemsWithWeights: CaseItemWithWeight[], totalCount: number): ItemDto[] => {
+		const strip: ItemDto[] = [];
+		
+		// Calculate how many times each item should appear based on probability
+		itemsWithWeights.forEach(itemData => {
+			// Calculate count based on probability (normalized to totalCount)
+			const count = Math.max(1, Math.round((itemData.probability / 100) * totalCount));
+			for (let i = 0; i < count; i++) {
+				strip.push(itemData.item);
+			}
+		});
 
-    // Wait for animation to complete
-    setTimeout(() => {
-      setIsSpinning(false);
-      setSpinResult(result);
-      onSpin?.(result);
-      telegramService.notificationOccurred('success');
-    }, 3000);
-  };
+		// Shuffle the strip to make it look more random
+		for (let i = strip.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[strip[i], strip[j]] = [strip[j], strip[i]];
+		}
 
-  // Reset position when not spinning
-  useEffect(() => {
-    if (!isSpinning && stripRef.current) {
-      setTimeout(() => {
-        if (stripRef.current) {
-          stripRef.current.style.transition = 'none';
-          stripRef.current.style.transform = 'translateX(0px)';
-        }
-      }, 100);
-    }
-  }, [isSpinning]);
+		return strip;
+	}, []);
 
-  const rarityColors = {
-    common: 'border-muted bg-muted/10',
-    rare: 'border-blue-500/50 bg-blue-500/10',
-    epic: 'border-purple-500/50 bg-purple-500/10',
-    legendary: 'border-yellow-500/50 bg-yellow-500/10',
-  };
+	// Compute minimal repeats to ensure we can move to a middle area without rendering too many elements
+	const extendedItems = React.useMemo(() => {
+		if (!items || items.length === 0) return [] as ItemDto[];
 
-  return (
-    <div className="space-y-6">
-      {/* Roulette Container */}
-      <div className="relative">
-        {/* Container with overflow hidden */}
-        <div 
-          className="relative mx-auto overflow-hidden rounded-lg bg-card/50 border border-border"
-          style={{ width: CONTAINER_WIDTH, height: 120 }}
-        >
-          {/* Center indicator line */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-primary z-10 transform -translate-x-0.5" />
-          <div className="absolute left-1/2 top-2 w-3 h-3 bg-primary rounded-full z-10 transform -translate-x-1.5" />
+		let baseStrip: ItemDto[];
 
-          {/* Items strip */}
-          <div
-            ref={stripRef}
-            className="flex items-center h-full"
-            style={{ width: extendedItems.length * ITEM_WIDTH }}
-          >
-            {extendedItems.map((item, index) => (
-              <div
-                key={`${item.id}-${index}`}
-                className={cn(
-                  "flex-shrink-0 p-2 border-r border-border/30 last:border-r-0",
-                  rarityColors[item.rarity]
-                )}
-                style={{ width: ITEM_WIDTH }}
-              >
-                <div className="text-center space-y-1">
-                  {/* Item image placeholder */}
-                  <div className="w-12 h-12 mx-auto rounded-lg bg-background/50 flex items-center justify-center text-xl">
-                    🎁
-                  </div>
-                  
-                  {/* Item name */}
-                  <p className="text-xs font-medium text-foreground line-clamp-1">
-                    {item.name}
-                  </p>
-                  
-                  {/* Item price */}
-                  <Badge variant="outline" className="text-xs px-1 py-0">
-                    💎{item.price}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
+		if (hasWeights(items)) {
+			// Generate weighted strip (more frequent items appear more often)
+			const stripSize = Math.max(50, visibleItems * 10); // Generate enough items for variety
+			baseStrip = generateWeightedStrip(items, stripSize);
+		} else {
+			// Original behavior for simple ItemDto[]
+			baseStrip = items as ItemDto[];
+		}
 
-          {/* Spinning overlay */}
-          {isSpinning && (
-            <div className="absolute inset-0 bg-background/20 backdrop-blur-sm flex items-center justify-center z-20">
-              <div className="text-2xl animate-spin">🎰</div>
-            </div>
-          )}
-        </div>
+		// Determine how many items we need at minimum so that middle region exists and visible items fill space
+		const minDistanceInItems = visibleItems * 3; // allow enough room to land near center
+		const repeats = Math.max(3, Math.ceil((minDistanceInItems + visibleItems) / baseStrip.length));
 
-        {/* Grid background effect */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
-      </div>
+		const arr: ItemDto[] = [];
+		for (let i = 0; i < repeats; i++) arr.push(...baseStrip);
+		return arr;
+	}, [items, visibleItems, generateWeightedStrip]);
 
-      {/* Demo Spin Button */}
-      <div className="text-center space-y-3">
-        <Button
-          onClick={handleDemoSpin}
-          disabled={isSpinning || disabled}
-          className="btn-primary px-8 py-3 text-base font-semibold"
-        >
-          {isSpinning ? (
-            <>
-              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              Крутим...
-            </>
-          ) : (
-            'Демо прокрут 🚀'
-          )}
-        </Button>
+	// Cleanup on unmount: remove listeners and cancel any pending state changes
+	useEffect(() => {
+		return () => {
+			// call cleanup if set
+			animationCleanupRef.current();
+			animationCleanupRef.current = () => {};
+		};
+	}, []);
 
-        {/* Result Display */}
-        {spinResult && !isSpinning && (
-          <div className="animate-scale-in bg-card/80 backdrop-blur-md rounded-lg p-4 border border-border">
-            <p className="text-sm text-muted-foreground mb-2">Поздравляем!</p>
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">
-                🎁
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">{spinResult.name}</p>
-                <Badge variant="outline" className="text-xs">
-                  💎{spinResult.price}
-                </Badge>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+	const finishSpin = useCallback((result: ItemDto) => {
+		setIsAnimating(false);
+		setSpinResult(result);
+		onSpin?.(result);
+		telegramService.notificationOccurred('success');
+	}, [onSpin]);
+
+	// Handle external spinning control (when server sends won item)
+	useEffect(() => {
+		if (externalSpinning && wonItem) {
+			setIsAnimating(true);
+			setSpinResult(null);
+
+			// Find the won item in the extended strip
+			// We look in the middle third of the strip for a smooth landing
+			const middleStart = Math.floor(extendedItems.length / 3);
+			const middleEnd = Math.floor((extendedItems.length * 2) / 3);
+			const middleSection = extendedItems.slice(middleStart, middleEnd);
+			
+			// Find the first occurrence of won item in middle section
+			const relativeIndex = middleSection.findIndex(item => item.id === wonItem.id);
+			
+			let timeoutId: NodeJS.Timeout | null = null;
+
+			if (relativeIndex === -1) {
+				// If not found in middle, find anywhere in extended items
+				const anyIndex = extendedItems.findIndex(item => item.id === wonItem.id);
+				if (anyIndex === -1) {
+					// console.error('Won item not found in strip:', wonItem);
+					setIsAnimating(false);
+					return;
+				}
+				// Use found index
+				const targetIndex = anyIndex;
+				const finalPosition = -(targetIndex * itemWidth - containerWidth / 2 + itemWidth / 2);
+				
+				// Animate to position
+				if (stripRef.current) {
+					const startOffset = Math.random() * itemWidth * 2;
+					stripRef.current.style.transition = 'none';
+					stripRef.current.style.transform = `translate3d(${startOffset}px, 0, 0)`;
+					// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+					stripRef.current.offsetHeight;
+					
+					stripRef.current.style.willChange = 'transform';
+					stripRef.current.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+					stripRef.current.style.transform = `translate3d(${finalPosition}px, 0, 0)`;
+					
+					timeoutId = setTimeout(() => {
+						if (stripRef.current) {
+							stripRef.current.style.transition = 'none';
+							stripRef.current.style.transform = 'translate3d(0,0,0)';
+						}
+						finishSpin(wonItem);
+					}, 4000);
+				}
+			} else {
+				// Use middle section index
+				const targetIndex = middleStart + relativeIndex;
+				const finalPosition = -(targetIndex * itemWidth - containerWidth / 2 + itemWidth / 2);
+				
+				// Animate to position
+				if (stripRef.current) {
+					const startOffset = Math.random() * itemWidth * 2;
+					stripRef.current.style.transition = 'none';
+					stripRef.current.style.transform = `translate3d(${startOffset}px, 0, 0)`;
+					// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+					stripRef.current.offsetHeight;
+					
+					stripRef.current.style.willChange = 'transform';
+					stripRef.current.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+					stripRef.current.style.transform = `translate3d(${finalPosition}px, 0, 0)`;
+					
+					timeoutId = setTimeout(() => {
+						if (stripRef.current) {
+							stripRef.current.style.transition = 'none';
+							stripRef.current.style.transform = 'translate3d(0,0,0)';
+						}
+						finishSpin(wonItem);
+					}, 4000);
+				}
+			}
+
+			return () => {
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+				}
+			};
+		}
+	}, [externalSpinning, wonItem, items, extendedItems, itemWidth, containerWidth, finishSpin]);
+
+	// Helper function to select item based on probability
+	const selectItemByProbability = useCallback((items: ItemDto[] | CaseItemWithWeight[]): ItemDto => {
+		if (hasWeights(items)) {
+			// Weighted random selection
+			const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+			let random = Math.random() * totalWeight;
+			
+			for (const itemData of items) {
+				random -= itemData.weight;
+				if (random <= 0) {
+					return itemData.item;
+				}
+			}
+			// Fallback (should never happen)
+			return items[0].item;
+		} else {
+			// Simple random selection for ItemDto[]
+			return items[Math.floor(Math.random() * items.length)] as ItemDto;
+		}
+	}, []);
+
+	const handleDemoSpin = useCallback(() => {
+		if (isAnimating || disabled || items.length === 0) return;
+
+		telegramService.impactOccurred('medium');
+		setIsAnimating(true);
+		setSpinResult(null);
+
+		// Select result based on probability if weights are available
+		const result = selectItemByProbability(items);
+
+		// Find a matching item in the middle section of extendedItems
+		const middleStart = Math.floor(extendedItems.length / 3);
+		const middleEnd = Math.floor((extendedItems.length * 2) / 3);
+		const middleSection = extendedItems.slice(middleStart, middleEnd);
+		
+		// Find index of a matching item in the middle section
+		const relativeIndex = middleSection.findIndex(item => item.id === result.id);
+		const targetIndex = relativeIndex !== -1 ? middleStart + relativeIndex : middleStart;
+
+		const finalPosition = -(targetIndex * itemWidth - containerWidth / 2 + itemWidth / 2);
+
+		// If user prefers reduced motion, skip animation and immediately show result
+		if (prefersReducedMotion) {
+			// reset transform cleanly
+			if (stripRef.current) {
+				stripRef.current.style.transition = 'none';
+				stripRef.current.style.transform = 'translate3d(0,0,0)';
+			}
+			finishSpin(result);
+			return;
+		}
+
+		if (!stripRef.current) return;
+
+		// Reset position to start for consistent animation
+		const startOffset = Math.random() * itemWidth * 2;
+		stripRef.current.style.transition = 'none';
+		stripRef.current.style.transform = `translate3d(${startOffset}px, 0, 0)`;
+		
+		// Force reflow to apply the reset
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		stripRef.current.offsetHeight;
+
+		// Remove any previous transitionend listener
+		animationCleanupRef.current();
+
+		const onTransitionEnd = (e: TransitionEvent) => {
+			if (e.propertyName !== 'transform') return;
+			// remove listener
+			stripRef.current?.removeEventListener('transitionend', onTransitionEnd);
+
+			// Give the browser a tick, then snap back to the non-animated zero offset while keeping visual
+			// We temporarily disable transition to avoid visible jump when resetting transform
+			window.requestAnimationFrame(() => {
+				// During reset we set transition:none then transform to 0
+				if (!stripRef.current) return;
+				stripRef.current.style.transition = 'none';
+				stripRef.current.style.transform = 'translate3d(0,0,0)';
+
+				// Force reflow then clear inline styles related to animation (so subsequent spins work predictably)
+				// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+				stripRef.current.offsetHeight;
+
+				// Cleanup: restore will-change (kept in css/class)
+			});
+
+			finishSpin(result);
+		};
+
+		// attach listener
+		stripRef.current.addEventListener('transitionend', onTransitionEnd);
+
+		// provide a cleanup handler in case component unmounts or another spin starts before transitionend
+		animationCleanupRef.current = () => {
+			if (stripRef.current) {
+				stripRef.current.removeEventListener('transitionend', onTransitionEnd);
+			}
+		};
+
+		// Set transition & translate
+		// Use translate 3d and will-change for GPU acceleration
+		// cubic-bezier для плавного естественного замедления
+		stripRef.current.style.willChange = 'transform';
+		stripRef.current.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+		stripRef.current.style.transform = `translate3d(${finalPosition}px, 0, 0)`;
+	}, [isAnimating, disabled, items, extendedItems, itemWidth, containerWidth, finishSpin, prefersReducedMotion, selectItemByProbability]);
+
+	// Accessibility: announce result to screen readers
+	// A small offscreen live region
+
+	const getItemImage = (item: ItemDto) => {
+		if (item.imageUrl) {
+			return (
+				<img
+					src={item.imageUrl}
+					alt={item.name}
+					className="w-12 h-12 mx-auto rounded-lg object-cover"
+				/>
+			);
+		}
+		return (
+			<div className="w-12 h-12 mx-auto rounded-lg bg-background/50 flex items-center justify-center text-xl">
+				🎁
+			</div>
+		);
+	};
+
+	// Key handlers: allow Space/Enter to spin
+	const onKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handleDemoSpin();
+		}
+	};
+
+	// Render
+	return (
+		<div className="space-y-6">
+			{/* Roulette Container */}
+			<div className="relative">
+				{/* Container with overflow hidden */}
+				<div
+					ref={containerRef}
+					className="relative mx-auto overflow-hidden rounded-lg bg-card/50 border border-border"
+					style={{ width: containerWidth || itemWidth * Math.min(visibleItems, Math.max(1, items.length)), height }}
+					aria-busy={isAnimating}
+				>
+					{/* Center indicator line */}
+					<div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-primary z-10 transform -translate-x-0.5" />
+					<div className="absolute left-1/2 top-2 w-3 h-3 bg-primary rounded-full z-10 transform -translate-x-1.5" />
+
+					{/* Items strip */}
+					<div
+						ref={stripRef}
+						className="flex items-center h-full"
+						// width may be large; leave to inline style for performance
+						style={{ width: extendedItems.length * itemWidth }}
+						// Prevent pointer events during animation
+						aria-hidden={isAnimating}
+					>
+						{extendedItems.length === 0 ? (
+							<div className="flex items-center justify-center w-full h-full">
+								<p className="text-sm text-muted-foreground">Нет предметов для отображения</p>
+							</div>
+						) : (
+							extendedItems.map((item, index) => (
+								<div
+									key={`${item.id}-${index}`}
+									className={cn(
+										'flex-shrink-0 p-2 border-r border-border/30 last:border-r-0 bg-card/50'
+									)}
+									style={{ width: itemWidth }}
+								>
+									<div className="text-center space-y-1">
+										{/* Item image */}
+										{getItemImage(item)}
+
+										{/* Item name */}
+										<p className="text-xs font-medium text-foreground line-clamp-1">{item.name}</p>
+
+										{/* Item price */}
+										<Badge variant="outline" className="text-xs px-1 py-0">
+											💎{item.price}
+										</Badge>
+									</div>
+								</div>
+							))
+						)}
+					</div>
+
+					{/* Spinning overlay */}
+					{/*{isAnimating && (*/}
+					{/*	<div className="absolute inset-0 bg-background/20 backdrop-blur-sm flex items-center justify-center z-20 pointer-events-none">*/}
+					{/*		<div className="text-2xl animate-spin">🎰</div>*/}
+					{/*	</div>*/}
+					{/*)}*/}
+				</div>
+
+				{/* Grid background effect */}
+				<div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
+			</div>
+
+			{/* Demo Spin Button */}
+			<div className="text-center space-y-3">
+				<Button
+					onClick={handleDemoSpin}
+					onKeyDown={onKeyDown}
+					disabled={isAnimating || disabled}
+					className="btn-primary px-8 py-3 text-base font-semibold"
+					aria-pressed={isAnimating}
+				>
+					{isAnimating ? (
+						<>
+							<div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+							Крутим...
+						</>
+					) : (
+						'Демо прокрут 🚀'
+					)}
+				</Button>
+
+				{/* Result Display */}
+				{spinResult && !isAnimating && (
+					<div className="animate-scale-in bg-card/80 backdrop-blur-md rounded-lg p-4 border border-border">
+						<p className="text-sm text-muted-foreground mb-2">Поздравляем!</p>
+						<div className="flex items-center justify-center gap-3">
+							{spinResult.imageUrl ? (
+								<img
+									src={spinResult.imageUrl}
+									alt={spinResult.name}
+									className="w-10 h-10 rounded-lg object-cover"
+								/>
+							) : (
+								<div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">🎁</div>
+							)}
+							<div className="flex flex-col items-start gap-2">
+								<p className="font-semibold text-foreground">{spinResult.name}</p>
+								<Badge variant="outline" className="text-xs">
+									💎{spinResult.price}
+								</Badge>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Screen reader live region */}
+				<div aria-live="polite" className="sr-only">
+					{spinResult ? `Вы выиграли ${spinResult.name}` : ''}
+				</div>
+			</div>
+		</div>
+	);
 };

@@ -1,85 +1,110 @@
-import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
-import type { User, AuthTokens } from '@/types';
-import { tokenManager } from '@/api/client';
+import { create } from "zustand";
+import { apiClient } from "@/api/apiClient.ts";
+import { TelegramUser } from "@/types/auth.ts";
+import { getCurrentUser } from "@/api/auth.ts";
+import { safeEncryptToken, safeDecryptToken, clearEncryptionData } from "@/lib/tokenEncryption.ts";
 
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  isDemoMode: boolean;
-  
-  // Actions
-  setUser: (user: User) => void;
-  setTokens: (tokens: AuthTokens) => void;
-  logout: () => void;
-  setLoading: (loading: boolean) => void;
-  setDemoMode: (demo: boolean) => void;
-  updateBalance: (newBalance: number) => void;
+interface AuthStore {
+    user: TelegramUser | null;
+    accessToken: string | null;
+
+    // setters
+    setUser: (user: TelegramUser | null) => void;
+
+    // tokens
+    setAccessToken: (token: string | null) => void;
+    clearAuth: () => void;
+
+    // actions
+    refresh: () => Promise<void>;
+    logout: () => Promise<void>;
+    updateBalance: (delta: number) => void;
+    setBalance: (newBalance: number) => void;
+    fetchCurrentUser: () => Promise<void>;
 }
 
-// Demo user for testing without Telegram
-const DEMO_USER: User = {
-  id: 12345,
-  firstName: 'Demo',
-  lastName: 'User',
-  username: 'demo_user',
-  balance: 1000,
-};
+export const useAuthStore = create<AuthStore>((set, get) => ({
+    user: null,
+    accessToken: null,
 
-export const useAuthStore = create<AuthState>()(
-  devtools(
-    (set, get) => ({
-      user: null,
-      isAuthenticated: false,
-      isLoading: true,
-      isDemoMode: false,
+    setUser: (user) => set({ user }),
 
-      setUser: (user: User) => {
-        set({ 
-          user, 
-          isAuthenticated: true, 
-          isLoading: false 
-        });
-      },
+    setAccessToken: (token) => {
+        // Шифруем токен перед сохранением в памяти
+        const encryptedToken = safeEncryptToken(token);
+        set({ accessToken: encryptedToken });
+    },
 
-      setTokens: (tokens: AuthTokens) => {
-        tokenManager.setTokens(tokens);
-      },
+    clearAuth: () => {
+        clearEncryptionData(); // Очищаем данные шифрования
+        set({ accessToken: null, user: null });
+    },
 
-      logout: () => {
-        tokenManager.clearTokens();
-        set({ 
-          user: null, 
-          isAuthenticated: false, 
-          isLoading: false 
-        });
-      },
+    // Попытка обновить accessToken через cookie (httponly refresh). Не передаём body.
+    refresh: async () => {
+        try {
+            const { data } = await apiClient.post("/auth/refresh");
+            const payload = data?.data ?? data;
+            const newAccess = payload?.accessToken ?? payload?.tokens?.accessToken ?? null;
+            const user = payload?.user ?? null;
 
-      setLoading: (loading: boolean) => {
-        set({ isLoading: loading });
-      },
+            if (!newAccess) throw new Error("No access token returned from refresh");
 
-      setDemoMode: (demo: boolean) => {
-        set({ 
-          isDemoMode: demo,
-          user: demo ? DEMO_USER : null,
-          isAuthenticated: demo,
-          isLoading: false
-        });
-      },
-
-      updateBalance: (newBalance: number) => {
-        const { user } = get();
-        if (user) {
-          set({ 
-            user: { ...user, balance: newBalance } 
-          });
+            // Шифруем новый токен перед сохранением
+            const encryptedToken = safeEncryptToken(newAccess);
+            set({ accessToken: encryptedToken, user });
+        } catch (err) {
+            // При неудаче — полностью очистить стейт
+            clearEncryptionData();
+            set({ accessToken: null, user: null });
+            throw err;
         }
-      },
-    }),
-    {
-      name: 'auth-store',
-    }
-  )
-);
+    },
+
+    logout: async () => {
+        try {
+            // TODO: будет реализовано в будущем на бекенде
+            await apiClient.post("/auth/logout"); // cookie будет удалено бекендом
+        } catch (e) {
+            // игнорируем ошибки при logout, но можно логировать
+            // console.warn("Logout failed:", e);
+        } finally {
+            clearEncryptionData(); // Очищаем данные шифрования
+            set({ accessToken: null, user: null });
+        }
+    },
+
+    updateBalance: (delta: number) => {
+        const currentUser = get().user;
+        if (currentUser) {
+            set({
+                user: {
+                    ...currentUser,
+                    balance: (currentUser.balance || 0) + delta,
+                },
+            });
+        }
+    },
+
+    setBalance: (newBalance: number) => {
+        const currentUser = get().user;
+        if (currentUser) {
+            set({
+                user: {
+                    ...currentUser,
+                    balance: newBalance,
+                },
+            });
+        }
+    },
+
+    fetchCurrentUser: async () => {
+        try {
+            const userData = await getCurrentUser();
+            set({ user: userData });
+        } catch (error) {
+            // console.error('Failed to fetch current user:', error);
+            // Don't clear auth on fetch error, just log it
+        }
+    },
+}));

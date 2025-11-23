@@ -102,6 +102,14 @@ export default {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(var(--final-position))" },
         },
+        "spin-slow": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        "progress": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(400%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -111,6 +119,8 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "roulette-spin": "roulette-spin 3s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        "spin-slow": "spin-slow 3s linear infinite",
+        "progress": "progress 1.5s ease-in-out infinite",
       },
     },
   },

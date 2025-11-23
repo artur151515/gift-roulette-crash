@@ -1,40 +1,40 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import apiClient from './client';
-import type { AuthResponse, User } from '@/types';
+import { apiClient } from "./apiClient.ts";
+import {GetMeResponse, TelegramLoginResponse, TelegramUser} from "@/types/auth.ts";
+import {useAuthStore} from "@/store/authStore.ts";
 
-// Auth API calls
-export const authApi = {
-  loginWithTelegram: async (initData: string): Promise<AuthResponse> => {
-    const response = await apiClient.post('/auth/telegram', { initData });
-    return response.data;
-  },
+export const loginWithTelegram = async (
+	initData: string
+): Promise<TelegramLoginResponse> => {
+	// Базовая проверка формата
+	if (!initData || typeof initData !== "string") {
+		throw new Error("Invalid initData");
+	}
 
-  getMe: async (): Promise<User> => {
-    const response = await apiClient.get('/auth/me');
-    return response.data;
-  },
+	// Проверка наличия обязательных полей
+	const params = new URLSearchParams(initData);
+	if (!params.has("user") || !params.has("auth_date") || !params.has("hash")) {
+		throw new Error("Invalid initData format");
+	}
 
-  refresh: async (refreshToken: string) => {
-    const response = await apiClient.post('/auth/refresh', { refreshToken });
-    return response.data;
-  },
+	// Проверка времени (не старше 24 часов)
+	const authDate = parseInt(params.get("auth_date") || "0");
+	const now = Math.floor(Date.now() / 1000);
+	if (now - authDate > 86400) {
+		throw new Error("initData expired");
+	}
+
+	const { data } = await apiClient.post("/auth/telegram", { initData });
+
+	useAuthStore.getState().setAccessToken(data.data.accessToken);
+	return data;
 };
 
-// React Query hooks
-export const useLoginWithTelegram = () => {
-  return useMutation({
-    mutationFn: authApi.loginWithTelegram,
-    onError: (error) => {
-      console.error('Telegram login failed:', error);
-    },
-  });
+export const refreshAccessToken = async (): Promise<TelegramLoginResponse> => {
+	const { data } = await apiClient.post<TelegramLoginResponse>("/auth/refresh");
+	return data;
 };
 
-export const useGetMe = () => {
-  return useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: authApi.getMe,
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+export const getCurrentUser = async (): Promise<TelegramUser> => {
+	const { data } = await apiClient.get<GetMeResponse>("/auth/me");
+	return data.data;
 };
