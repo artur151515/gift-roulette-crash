@@ -63,15 +63,15 @@ export const GiftsFeed = ({ items, userWonItem, onItemAppear }: GiftsFeedProps) 
             const dy = y - state.lastY;
 
             // Всегда показываем около верха/низа — убирает мерцание на «упоре»
-            const nearTop = y <= VISIBILITY.NEAR_TOP;
-            const nearBottom = (maxY - y) <= VISIBILITY.NEAR_BOTTOM;
-            if (nearTop || nearBottom) {
-                if (!visibleRef.current) setVisibleSafe(true);
-                state.anchorY = y;
-                state.lastY = y;
-                state.ticking = false;
-                return;
-            }
+            // const nearTop = y <= VISIBILITY.NEAR_TOP;
+            // const nearBottom = (maxY - y) <= VISIBILITY.NEAR_BOTTOM;
+            // if (nearTop || nearBottom) {
+            //     if (!visibleRef.current) setVisibleSafe(true);
+            //     state.anchorY = y;
+            //     state.lastY = y;
+            //     state.ticking = false;
+            //     return;
+            // }
 
             // Игнор мелких дельт
             if (Math.abs(dy) >= VISIBILITY.MIN_DELTA) {
